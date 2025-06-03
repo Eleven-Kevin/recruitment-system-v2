@@ -1,25 +1,27 @@
 
+"use client";
 import type React from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { commonNavItems, getNavItemsByRole } from '@/lib/constants';
-import { headers } from 'next/headers';
+import { withAuth } from '@/components/auth/withAuth';
+import { usePathname } from 'next/navigation'; // For client-side role detection
 
-// This is a simplified way to determine role for common layout.
-// In a real app, auth context would provide this.
-// For common layout, it might show a default set of nav items or adapt.
-const getRoleFromServer = () => {
-  const headerList = headers();
-  const pathname = headerList.get('x-next-pathname') || ''; // Next.js might provide this or similar
-  if (pathname.startsWith('/student')) return 'student';
-  if (pathname.startsWith('/admin')) return 'admin';
-  if (pathname.startsWith('/company')) return 'company';
-  if (pathname.startsWith('/college')) return 'college';
-  return null; // default or common role
+function CommonLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  let role: string | null = null;
+  if (pathname.startsWith('/student')) role = 'student';
+  else if (pathname.startsWith('/admin')) role = 'admin';
+  else if (pathname.startsWith('/company')) role = 'company';
+  else if (pathname.startsWith('/college')) role = 'college';
+  
+  // If we are directly on a common page like /common/notifications,
+  // role might be derived from localStorage if needed by MainLayout,
+  // but getNavItemsByRole will use the 'null' case for commonNavItems.
+  const actualRoleForNav = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+  const navItems = getNavItemsByRole(actualRoleForNav);
+
+  return <MainLayout navItems={navItems} role={actualRoleForNav || undefined}>{children}</MainLayout>;
 }
 
-export default function CommonLayout({ children }: { children: React.ReactNode }) {
-  const role = getRoleFromServer();
-  const navItems = getNavItemsByRole(role); // This will select role-specific nav if on a role page, or commonNavItems if role is null
-
-  return <MainLayout navItems={navItems} role={role || undefined}>{children}</MainLayout>;
-}
+// Protect common routes, allowing any authenticated user.
+export default withAuth(CommonLayout, ['admin', 'student', 'company', 'college']);

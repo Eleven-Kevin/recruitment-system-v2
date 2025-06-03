@@ -2,6 +2,7 @@
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
 import type { Student, Company, Job, Application } from '@/types';
+import { pseudoHashPassword } from '@/lib/auth-utils';
 
 let db: Database | null = null;
 
@@ -79,7 +80,7 @@ async function seedData(dbInstance: Database) {
     // Seed Admin User
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Admin User", "admin@example.com", "adminpassword", "admin", "ADMIN001", "Platform Administration", null, null,
+      "Admin User", "admin@example.com", pseudoHashPassword("adminpassword"), "admin", "ADMIN001", "Platform Administration", null, null,
       JSON.stringify(["User Management", "System Configuration"]),
       "Oversees platform operations.",
       null, "https://placehold.co/150x150.png?text=AU"
@@ -88,20 +89,20 @@ async function seedData(dbInstance: Database) {
     // Seed Student Users
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Alex Johnson", "alex.johnson@example.com", "password123", "student", "S1001", "Computer Science", 2025, 3.75,
+      "Alex Johnson", "alex.johnson@example.com", pseudoHashPassword("password123"), "student", "S1001", "Computer Science", 2025, 3.75,
       JSON.stringify(["JavaScript", "React", "Node.js", "Python"]),
       "Interested in full-stack development roles in tech companies. Open to remote work.",
       "https://example.com/resumes/alex_johnson.pdf", "https://placehold.co/150x150.png?text=AJ"
     );
      await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Alice Wonderland", "alice@example.com", "password123", "student", "S1002", "Computer Science", 2024, 3.9,
+      "Alice Wonderland", "alice@example.com", pseudoHashPassword("password123"), "student", "S1002", "Computer Science", 2024, 3.9,
       JSON.stringify(["Java", "Spring Boot", "Microservices", "SQL", "Agile"]),
       "https://placehold.co/100x100.png?text=AW"
     );
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Bob The Builder", "bob@example.com", "password123", "student", "S1003", "Software Engineering", 2025, 3.5,
+      "Bob The Builder", "bob@example.com", pseudoHashPassword("password123"), "student", "S1003", "Software Engineering", 2025, 3.5,
       JSON.stringify(["Python", "Django", "JavaScript", "React", "DevOps"]),
       "https://placehold.co/100x100.png?text=BB"
     );
@@ -109,14 +110,14 @@ async function seedData(dbInstance: Database) {
     // Seed Company Representative User
      await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, preferences, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      "Company Rep", "company@example.com", "companypassword", "company", "COMPREP001", 
+      "Company Rep", "company@example.com", pseudoHashPassword("companypassword"), "company", "COMPREP001", 
       "Representing Tech Solutions Inc.", "https://placehold.co/150x150.png?text=CR"
     );
 
     // Seed College Staff User
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, preferences, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      "College Staff", "college@example.com", "collegepassword", "college", "COLLSTAFF001", 
+      "College Staff", "college@example.com", pseudoHashPassword("collegepassword"), "college", "COLLSTAFF001", 
       "Placement Office", "Manages college placement activities.", "https://placehold.co/150x150.png?text=CS"
     );
   }
@@ -193,7 +194,7 @@ async function seedData(dbInstance: Database) {
         );
     }
   }
-  console.log("Database initialized and seeded if necessary.");
+  console.log("Database initialized and seeded if necessary (with pseudo-hashed passwords).");
 }
 
 initializeDb().catch(console.error);
