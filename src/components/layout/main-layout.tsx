@@ -1,9 +1,10 @@
+
 import type React from 'react';
 import { AppLogo } from '@/components/core/app-logo';
 import { UserNav } from '@/components/layout/user-nav';
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import type { NavItem } from '@/lib/constants';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -41,6 +42,9 @@ export function MainLayout({ children, navItems, role }: MainLayoutProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col p-0 bg-sidebar">
+               <SheetHeader className="sr-only"> {/* Visually hidden header */}
+                <SheetTitle>Main Navigation</SheetTitle>
+              </SheetHeader>
                <div className="flex h-[60px] items-center border-b px-6">
                 <AppLogo />
               </div>
