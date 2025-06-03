@@ -17,8 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 import type { Student } from "@/types";
+import { DialogClose } from "@/components/ui/dialog"; // Added DialogClose
 
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -32,7 +32,6 @@ const addStudentSchema = z.object({
   preferences: z.string().optional(),
   resumeUrl: z.string().url().optional().or(z.literal('')).nullable(),
   profilePictureUrl: z.string().url().optional().or(z.literal('')).nullable(),
-  // role: z.enum(["student", "admin", "company", "college"]).default("student"), // Role could be added here if admins can create other types
 });
 
 type AddStudentFormValues = z.infer<typeof addStudentSchema>;
@@ -43,7 +42,6 @@ interface AddStudentFormProps {
 
 export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
   const { toast } = useToast();
-  const router = useRouter();
 
   const form = useForm<AddStudentFormValues>({
     resolver: zodResolver(addStudentSchema),
@@ -67,7 +65,7 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
       const response = await fetch('/api/admin/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...data, role: 'student'}), // Enforce role as student for now
+        body: JSON.stringify({...data, role: 'student'}),
       });
 
       if (!response.ok) {
@@ -82,11 +80,10 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
         description: `${newStudent.name} has been successfully added.`,
       });
       
-      form.reset();
+      form.reset(); // Reset form after successful submission
       if (onSuccess) {
-        onSuccess(newStudent);
+        onSuccess(newStudent); // This will trigger dialog close and list refresh
       }
-      router.refresh(); // Refresh data on the admin/students page
 
     } catch (error) {
         console.error('Failed to add student:', error);
@@ -261,9 +258,14 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
           )}
         />
         
-        <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Adding..." : "Add Student"}
-        </Button>
+        <div className="flex justify-end gap-2">
+            <DialogClose asChild>
+                <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Adding..." : "Add Student"}
+            </Button>
+        </div>
       </form>
     </Form>
   );

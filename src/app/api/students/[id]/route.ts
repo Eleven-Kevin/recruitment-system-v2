@@ -46,14 +46,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const db = await getDb();
-    const studentId = parseInt(params.id, 10);
+    const studentIdParam = parseInt(params.id, 10);
 
-    if (isNaN(studentId)) {
+    if (isNaN(studentIdParam)) {
       return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
     }
 
     const body: Partial<Student> = await request.json();
-    const { name, email, studentId: studentNum, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl } = body;
+    const { name, email, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl } = body;
 
     if (!name || !email) {
         return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
@@ -63,14 +63,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const result = await db.run(
       'UPDATE students SET name = ?, email = ?, studentId = ?, major = ?, graduationYear = ?, gpa = ?, skills = ?, preferences = ?, resumeUrl = ?, profilePictureUrl = ? WHERE id = ?',
-      name, email, studentNum, major, graduationYear, gpa, skillsJson, preferences, resumeUrl, profilePictureUrl, studentId
+      name, email, studentId, major, graduationYear, gpa, skillsJson, preferences, resumeUrl, profilePictureUrl, studentIdParam
     );
 
     if (result.changes === 0) {
       return NextResponse.json({ error: 'Student not found or no changes made' }, { status: 404 });
     }
 
-    const updatedStudent = await db.get('SELECT * FROM students WHERE id = ?', studentId);
+    const updatedStudent = await db.get('SELECT * FROM students WHERE id = ?', studentIdParam);
      if (updatedStudent && updatedStudent.skills && typeof updatedStudent.skills === 'string') {
       updatedStudent.skills = JSON.parse(updatedStudent.skills);
     } else if (updatedStudent && !updatedStudent.skills) {
@@ -82,5 +82,31 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   } catch (error) {
     console.error('Failed to update student:', error);
     return NextResponse.json({ error: 'Failed to update student' }, { status: 500 });
+  }
+}
+
+// Delete a specific student by ID
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const db = await getDb();
+    const studentId = parseInt(params.id, 10);
+
+    if (isNaN(studentId)) {
+      return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    }
+
+    // Optional: Check for related applications before deleting if strict referential integrity is desired
+    // For now, directly deleting. DB constraints should handle if applications exist.
+
+    const result = await db.run('DELETE FROM students WHERE id = ?', studentId);
+
+    if (result.changes === 0) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'Student deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Failed to delete student:', error);
+    return NextResponse.json({ error: 'Failed to delete student' }, { status: 500 });
   }
 }

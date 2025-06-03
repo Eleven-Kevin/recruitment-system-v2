@@ -4,6 +4,33 @@ import { getDb } from '@/lib/db';
 import type { Student } from '@/types';
 import { pseudoHashPassword } from '@/lib/auth-utils';
 
+// Get all students (admin action)
+export async function GET(request: NextRequest) {
+  try {
+    const db = await getDb();
+    const students: Student[] = await db.all('SELECT id, name, email, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl FROM students WHERE role = ? ORDER BY name ASC', 'student');
+    
+    students.forEach(student => {
+      if (student.skills && typeof student.skills === 'string') {
+        try {
+          student.skills = JSON.parse(student.skills);
+        } catch (e) {
+          console.error("Failed to parse student skills JSON for student ID " + student.id + ":", e);
+          student.skills = [];
+        }
+      } else if (!student.skills) {
+        student.skills = [];
+      }
+    });
+    
+    return NextResponse.json(students);
+  } catch (error: any) {
+    console.error('Failed to fetch students:', error);
+    return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 });
+  }
+}
+
+
 // Create a new student (admin action)
 export async function POST(request: NextRequest) {
   try {
