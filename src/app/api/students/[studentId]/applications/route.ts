@@ -13,7 +13,6 @@ export async function GET(request: NextRequest, { params }: { params: { studentI
       return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
     }
 
-    // Ensure student exists (optional, but good practice)
     const student = await db.get('SELECT id FROM students WHERE id = ? AND role = ?', studentId, 'student');
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -32,12 +31,14 @@ export async function GET(request: NextRequest, { params }: { params: { studentI
     );
 
     return NextResponse.json(applications);
-  } catch (error) {
-    console.error('Failed to fetch student applications:', error);
-    return NextResponse.json({ error: 'Failed to fetch student applications' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch student applications';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in GET /api/students/${params.studentId}/applications:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-
-// TODO: POST method for a student to apply to a job
-// Example: POST /api/students/[studentId]/applications with { jobId: number }
-// This might be better as POST /api/jobs/[jobId]/apply and infer studentId from session

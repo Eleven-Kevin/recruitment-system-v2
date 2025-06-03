@@ -28,9 +28,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
     }
     return NextResponse.json(schedule);
-  } catch (error) {
-    console.error('Failed to fetch schedule:', error);
-    return NextResponse.json({ error: 'Failed to fetch schedule' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch schedule';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in GET /api/admin/schedules/${params.id}:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -71,9 +77,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
        WHERE s.id = ?`,
       scheduleId);
     return NextResponse.json(updatedSchedule);
-  } catch (error) {
-    console.error('Failed to update schedule:', error);
-    return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to update schedule';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in PUT /api/admin/schedules/${params.id}:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -87,15 +99,27 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Invalid schedule ID' }, { status: 400 });
     }
 
+     const schedule = await db.get('SELECT id FROM schedules WHERE id = ?', scheduleId);
+    if (!schedule) {
+        return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
+    }
+
     const result = await db.run('DELETE FROM schedules WHERE id = ?', scheduleId);
 
     if (result.changes === 0) {
-      return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
+      console.warn(`Attempted to delete schedule ID ${scheduleId}, but no rows were affected, despite existence check passing.`);
+      return NextResponse.json({ error: 'Schedule not found or delete failed unexpectedly' }, { status: 404 });
     }
 
     return NextResponse.json({ message: 'Schedule deleted successfully' }, { status: 200 });
-  } catch (error) {
-    console.error('Failed to delete schedule:', error);
-    return NextResponse.json({ error: 'Failed to delete schedule' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to delete schedule';
+     if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in DELETE /api/admin/schedules/${params.id}:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -13,13 +13,12 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       return NextResponse.json({ error: 'Invalid job ID' }, { status: 400 });
     }
 
-    // Ensure job exists (optional)
     const job = await db.get('SELECT id FROM jobs WHERE id = ?', jobId);
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const applicantsData: Array<{ student: Student, application: Application }> = await db.all(
+    const applicantsData: Array<any> = await db.all(
       `SELECT 
          s.id as student_id, s.name as student_name, s.email as student_email, s.major as student_major, 
          s.gpa as student_gpa, s.skills as student_skills, s.profilePictureUrl as student_profilePictureUrl,
@@ -38,13 +37,12 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
         if (row.student_skills && typeof row.student_skills === 'string') {
             try {
                 skillsArray = JSON.parse(row.student_skills);
-            } catch (e) {
-                console.error("Failed to parse skills JSON for student ID " + row.student_id + ":", e);
+            } catch (parseError) {
+                console.error("Failed to parse skills JSON for student ID " + row.student_id + ":", parseError);
             }
         } else if (Array.isArray(row.student_skills)) {
-             skillsArray = row.student_skills; // Should not happen based on DB but good practice
+             skillsArray = row.student_skills; 
         }
-
 
         return {
             student: {
@@ -56,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
                 skills: skillsArray,
                 profilePictureUrl: row.student_profilePictureUrl,
                 resumeUrl: row.student_resumeUrl,
-            } as Partial<Student>, // Cast as partial as we don't fetch all student fields
+            } as Partial<Student>, 
             application: {
                 id: row.application_id,
                 studentId: row.app_student_id,
@@ -68,13 +66,15 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
         }
     });
 
-
     return NextResponse.json(result);
-  } catch (error) {
-    console.error('Failed to fetch job applicants:', error);
-    return NextResponse.json({ error: 'Failed to fetch job applicants' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch job applicants';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in GET /api/jobs/${params.jobId}/applicants:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-
-// TODO: PUT method for a company to update an application's status for their job
-// Example: PUT /api/jobs/[jobId]/applicants/[applicationId] with { status: 'shortlisted' | 'rejected' etc. }

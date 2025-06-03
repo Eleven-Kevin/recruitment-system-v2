@@ -22,11 +22,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
 const jobPostingSchema = z.object({
   title: z.string().min(5, "Job title must be at least 5 characters."),
   description: z.string().min(20, "Description must be at least 20 characters."),
-  companyId: z.coerce.number().positive("Company is required."),
+  companyId: z.coerce.number().positive({ message: "Company is required."}),
   requiredSkills: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
   requiredGpa: z.coerce.number().min(0).max(4).optional().nullable(),
   location: z.string().optional(),
@@ -35,32 +34,63 @@ const jobPostingSchema = z.object({
 type JobPostingFormValues = z.infer<typeof jobPostingSchema>;
 
 interface JobPostingFormProps {
-  job?: Partial<Omit<Job, 'id' | 'companyName' | 'postedDate' | 'status'>> & { id?: number }; // Optional initial data for editing
-  companies: Company[]; // List of companies to choose from
+  job?: Partial<Omit<Job, 'id' | 'companyName' | 'postedDate' | 'status'>> & { id?: number };
+  companies: Company[];
   onSubmitSuccess?: (data: Job) => void;
 }
 
 export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFormProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const [loggedInCompanyId, setLoggedInCompanyId] = useState<number | null>(null);
+  const [isCompanyUser, setIsCompanyUser] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('userRole');
+      const companyIdStr = localStorage.getItem('companyId');
+      if (role === 'company' && companyIdStr) {
+        setLoggedInCompanyId(parseInt(companyIdStr, 10));
+        setIsCompanyUser(true);
+      }
+    }
+  }, []);
 
   const form = useForm<JobPostingFormValues>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
       title: job?.title || "",
       description: job?.description || "",
-      companyId: job?.companyId || companies[0]?.id || undefined, // Default to first company or undefined
+      companyId: job?.companyId || (isCompanyUser && loggedInCompanyId ? loggedInCompanyId : companies[0]?.id > 0 ? companies[0]?.id : undefined),
       requiredSkills: job?.requiredSkills?.join(', ') || "",
       requiredGpa: job?.requiredGpa || null,
       location: job?.location || "",
     },
   });
+  
+  // Effect to update companyId if loggedInCompanyId changes (after initial render)
+  useEffect(() => {
+    if (isCompanyUser && loggedInCompanyId && !job?.companyId) {
+      form.setValue('companyId', loggedInCompanyId);
+    } else if (!job?.companyId && companies.length > 0 && companies[0].id > 0) {
+        form.setValue('companyId', companies[0].id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCompanyUser, loggedInCompanyId, job?.companyId, form.setValue, companies]);
+
 
   async function onSubmit(data: JobPostingFormValues) {
-    const payload = {
-      ...data,
-      // companyId is already part of data from the form field
-    };
+    const payload = { ...data };
+    // If company user is logged in and creating a new job, ensure their companyId is used.
+    if (isCompanyUser && loggedInCompanyId && !job?.id) {
+        payload.companyId = loggedInCompanyId;
+    }
+    
+    if (!payload.companyId || payload.companyId <= 0) {
+        toast({ variant: "destructive", title: "Error", description: "A valid company must be selected or associated." });
+        return;
+    }
+
 
     const apiPath = job?.id ? `/api/jobs/${job.id}` : '/api/jobs';
     const method = job?.id ? 'PUT' : 'POST';
@@ -88,26 +118,28 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
         onSubmitSuccess(resultJob);
       }
       
-      if (!job?.id) { // If it was a new posting
-        form.reset({ // Reset form with default company if available
+      if (!job?.id) { 
+        form.reset({ 
             title: "", 
             description: "", 
-            companyId: companies[0]?.id || undefined, 
+            companyId: (isCompanyUser && loggedInCompanyId ? loggedInCompanyId : (companies[0]?.id > 0 ? companies[0]?.id : undefined)), 
             requiredSkills: "",
             requiredGpa: null,
             location: ""
         });
-        router.push('/company/job-postings'); // Navigate to job list after successful creation
+        router.push('/company/job-postings'); 
       } else {
-        router.refresh(); // Refresh data on current page if editing
+        router.refresh(); 
       }
 
     } catch (error) {
         console.error(`Failed to ${job?.id ? 'update' : 'post'} job:`, error);
+        let errorMessage = "An unexpected error occurred.";
+        if (error instanceof Error) errorMessage = error.message;
         toast({
             variant: "destructive",
             title: `${job?.id ? 'Update' : 'Post'} Failed`,
-            description: (error as Error).message || "An unexpected error occurred.",
+            description: errorMessage,
         });
     }
   }
@@ -135,25 +167,29 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
           render={({ field }) => (
             <FormItem>
               <FormLabel>Company</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+              <Select 
+                onValueChange={(value) => field.onChange(parseInt(value))} 
+                value={field.value?.toString()}
+                disabled={isCompanyUser} // Disable if company user is logged in
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a company" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {companies.map(c => (
+                  {companies.filter(c => c.id > 0).map(c => ( // Filter out placeholder companies with id 0
                     <SelectItem key={c.id} value={c.id.toString()}>
                       {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {isCompanyUser && <FormDescription>Your company is automatically selected.</FormDescription>}
               <FormMessage />
             </FormItem>
           )}
         />
-
 
         <FormField
           control={form.control}
@@ -219,8 +255,8 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
           )}
         />
         
-        <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-          {job?.id ? "Update Job Posting" : "Post Job"}
+        <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? (job?.id ? "Updating..." : "Posting...") : (job?.id ? "Update Job Posting" : "Post Job")}
         </Button>
       </form>
     </Form>

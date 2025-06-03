@@ -47,8 +47,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responsePayload);
 
-  } catch (error) {
-    console.error('Login failed:', error);
-    return NextResponse.json({ error: 'Login failed due to an internal error. Please try again later.' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Login failed due to an internal error. Please try again later.';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error('API Error in POST /api/auth/login:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -30,8 +30,8 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     if (job.requiredSkills && typeof job.requiredSkills === 'string') {
       try {
         job.requiredSkills = JSON.parse(job.requiredSkills);
-      } catch (e) {
-        console.error("Failed to parse job skills JSON:", e);
+      } catch (parseError) {
+        console.error("Failed to parse job skills JSON:", parseError);
         job.requiredSkills = [];
       }
     } else if (!job.requiredSkills) {
@@ -39,9 +39,15 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     return NextResponse.json(job);
-  } catch (error) {
-    console.error('Failed to fetch job:', error);
-    return NextResponse.json({ error: 'Failed to fetch job' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch job';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in GET /api/jobs/${params.jobId}:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -66,7 +72,6 @@ export async function PUT(request: NextRequest, { params }: { params: { jobId: s
     if (requiredGpa !== undefined) fieldsToUpdate.push({ key: 'requiredGpa', value: requiredGpa });
     if (location !== undefined) fieldsToUpdate.push({ key: 'location', value: location });
     if (status !== undefined) fieldsToUpdate.push({ key: 'status', value: status });
-
 
     if (fieldsToUpdate.length === 0) {
         return NextResponse.json({ error: 'No fields to update provided' }, { status: 400 });
@@ -95,12 +100,18 @@ export async function PUT(request: NextRequest, { params }: { params: { jobId: s
     }
 
     return NextResponse.json(updatedJob);
-  } catch (error) {
-    console.error('Failed to update job:', error);
-    if (error instanceof Error && error.message.includes('FOREIGN KEY constraint failed')) {
-        return NextResponse.json({ error: 'Invalid Company ID. Company does not exist.' }, { status: 400 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to update job';
+    if (e instanceof Error) {
+        if (e.message.includes('FOREIGN KEY constraint failed')) {
+            return NextResponse.json({ error: 'Invalid Company ID. Company does not exist.' }, { status: 400 });
+        }
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
     }
-    return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+    console.error(`API Error in PUT /api/jobs/${params.jobId}:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -121,8 +132,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { jobId
     }
 
     return NextResponse.json({ message: 'Job deleted successfully' }, { status: 200 });
-  } catch (error) {
-    console.error('Failed to delete job:', error);
-    return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to delete job';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error(`API Error in DELETE /api/jobs/${params.jobId}:`, e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

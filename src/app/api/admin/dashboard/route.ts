@@ -1,7 +1,6 @@
+
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-
-
 
 export async function GET() {
   try {
@@ -25,8 +24,14 @@ export async function GET() {
       totalActiveJobPostings,
       totalPlacedStudents,
     });
-  } catch (error) {
-    console.error('Error fetching admin dashboard data:', error);
-    return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch dashboard data';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error('API Error in GET /api/admin/dashboard:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

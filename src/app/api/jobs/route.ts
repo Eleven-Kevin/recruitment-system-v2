@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       if (job.requiredSkills && typeof job.requiredSkills === 'string') {
         try {
           job.requiredSkills = JSON.parse(job.requiredSkills);
-        } catch (e) {
-          console.error("Failed to parse job skills JSON for job ID " + job.id + ":", e);
+        } catch (parseError) {
+          console.error("Failed to parse job skills JSON for job ID " + job.id + ":", parseError);
           job.requiredSkills = [];
         }
       } else if (!job.requiredSkills) {
@@ -45,9 +45,15 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(jobs);
-  } catch (error) {
-    console.error('Failed to fetch jobs:', error);
-    return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch jobs';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error('API Error in GET /api/jobs:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -63,14 +69,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title, Company ID, and Description are required' }, { status: 400 });
     }
 
-    // Verify company exists
     const company = await db.get('SELECT id FROM companies WHERE id = ?', companyId);
     if (!company) {
       return NextResponse.json({ error: 'Company not found. Cannot create job.' }, { status: 400 });
     }
 
-
-    const skillsJson = requiredSkills ? JSON.stringify(requiredSkills) : null;
+    const skillsJson = requiredSkills && Array.isArray(requiredSkills) ? JSON.stringify(requiredSkills) : null;
     const postedDate = new Date().toISOString();
     const status = 'open';
 
@@ -96,11 +100,17 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(newJob, { status: 201 });
-  } catch (error) {
-    console.error('Failed to create job:', error);
-    if (error instanceof Error && error.message.includes('FOREIGN KEY constraint failed')) {
-        return NextResponse.json({ error: 'Invalid Company ID. Company does not exist.' }, { status: 400 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to create job';
+    if (e instanceof Error) {
+        if (e.message.includes('FOREIGN KEY constraint failed')) {
+            return NextResponse.json({ error: 'Invalid Company ID. Company does not exist.' }, { status: 400 });
+        }
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
     }
-    return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+    console.error('API Error in POST /api/jobs:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

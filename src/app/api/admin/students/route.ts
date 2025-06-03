@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
       if (student.skills && typeof student.skills === 'string') {
         try {
           student.skills = JSON.parse(student.skills);
-        } catch (e) {
-          console.error("Failed to parse student skills JSON for student ID " + student.id + ":", e);
+        } catch (parseError) {
+          console.error("Failed to parse student skills JSON for student ID " + student.id + ":", parseError);
           student.skills = [];
         }
       } else if (!student.skills) {
@@ -24,9 +24,15 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(students);
-  } catch (error: any) {
-    console.error('Failed to fetch students:', error);
-    return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch students';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error('API Error in GET /api/admin/students:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -43,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = pseudoHashPassword(password);
-    const skillsJson = skills ? JSON.stringify(skills) : null;
+    const skillsJson = skills && Array.isArray(skills) ? JSON.stringify(skills) : null;
 
     const result = await db.run(
       'INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -54,7 +60,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to create student. Please check server logs.' }, { status: 500 });
     }
 
-    // Do not return password, even hashed, in the response
     const newStudent = await db.get('SELECT id, name, email, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl FROM students WHERE id = ?', result.lastID);
     if (!newStudent) {
         console.error(`Failed to retrieve newly created student with ID ${result.lastID}.`);
@@ -68,14 +73,20 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(newStudent, { status: 201 });
-  } catch (error: any) {
-    console.error('Failed to create student:', error);
-    if (error.message && error.message.includes('UNIQUE constraint failed: students.email')) {
-      return NextResponse.json({ error: 'Email already exists. Please use a different email.' }, { status: 409 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to create student due to an internal error.';
+    if (e instanceof Error) {
+        if (e.message && e.message.includes('UNIQUE constraint failed: students.email')) {
+          return NextResponse.json({ error: 'Email already exists. Please use a different email.' }, { status: 409 });
+        }
+        if (e.message && e.message.includes('UNIQUE constraint failed: students.studentId')) {
+          return NextResponse.json({ error: 'Student ID already exists. Please use a different Student ID.' }, { status: 409 });
+        }
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
     }
-    if (error.message && error.message.includes('UNIQUE constraint failed: students.studentId')) {
-      return NextResponse.json({ error: 'Student ID already exists. Please use a different Student ID.' }, { status: 409 });
-    }
-    return NextResponse.json({ error: 'Failed to create student due to an internal error.' }, { status: 500 });
+    console.error('API Error in POST /api/admin/students:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

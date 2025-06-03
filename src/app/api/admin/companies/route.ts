@@ -9,9 +9,15 @@ export async function GET(request: NextRequest) {
     const db = await getDb();
     const companies: Company[] = await db.all('SELECT id, name, description, website, logoUrl FROM companies ORDER BY name ASC');
     return NextResponse.json(companies);
-  } catch (error: any) {
-    console.error('Failed to fetch companies:', error);
-    return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
+  } catch (e: unknown) {
+    let errorMessage = 'Failed to fetch companies';
+    if (e instanceof Error) {
+        errorMessage = e.message;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    console.error('API Error in GET /api/admin/companies:', e);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
