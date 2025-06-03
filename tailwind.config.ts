@@ -11,8 +11,8 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        headline: ['Space Grotesk', 'sans-serif'],
+        code: ['Source Code Pro', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -56,14 +56,14 @@ export default {
           '5': 'hsl(var(--chart-5))',
         },
         sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
+          DEFAULT: 'hsl(var(--sidebar-background))', /* Updated to use CSS var */
+          foreground: 'hsl(var(--sidebar-foreground))', /* Updated to use CSS var */
+          primary: 'hsl(var(--sidebar-primary))', /* Updated to use CSS var */
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))', /* Updated to use CSS var */
+          accent: 'hsl(var(--sidebar-accent))', /* Updated to use CSS var */
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))', /* Updated to use CSS var */
+          border: 'hsl(var(--sidebar-border))', /* Updated to use CSS var */
+          ring: 'hsl(var(--sidebar-ring))', /* Updated to use CSS var */
         },
       },
       borderRadius: {
