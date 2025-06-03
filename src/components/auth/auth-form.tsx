@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,55 +15,51 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+// Link component is no longer needed here if we remove the bottom link entirely
+// import Link from "next/link";
 import { AppLogo } from "../core/app-logo";
-import { useRouter } from "next/navigation"; // Using next/navigation for App Router
+import { useRouter } from "next/navigation";
 
-interface AuthFormProps {
-  mode: "login" | "signup";
-}
+// AuthFormProps is no longer needed as 'mode' is removed
+// interface AuthFormProps {
+//   mode: "login" | "signup";
+// }
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-const signupSchema = z.object({
-  fullName: z.string().min(2, { message: "Full name is required." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  role: z.enum(["student", "company", "college_admin", "platform_admin"]), // Example roles
-});
+// signupSchema is removed
+// const signupSchema = z.object({
+//   fullName: z.string().min(2, { message: "Full name is required." }),
+//   email: z.string().email({ message: "Invalid email address." }),
+//   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+//   role: z.enum(["student", "company", "college_admin", "platform_admin"]),
+// });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
-type SignupFormValues = z.infer<typeof signupSchema>;
+// SignupFormValues is removed
+// type SignupFormValues = z.infer<typeof signupSchema>;
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm() { // Removed mode prop
   const router = useRouter();
-  const isLogin = mode === "login";
-  const schema = isLogin ? loginSchema : signupSchema;
+  // isLogin is no longer needed
+  // const isLogin = mode === "login";
+  // schema is now always loginSchema
+  const schema = loginSchema;
 
-  const form = useForm<LoginFormValues | SignupFormValues>({
+  const form = useForm<LoginFormValues>({ // Type is now just LoginFormValues
     resolver: zodResolver(schema),
-    defaultValues: isLogin ? { email: "", password: "" } : { fullName: "", email: "", password: "", role: "student" },
+    defaultValues: { email: "", password: "" }, // Default values are for login
   });
 
-  function onSubmit(values: LoginFormValues | SignupFormValues) {
+  function onSubmit(values: LoginFormValues) { // Parameter type is now just LoginFormValues
     console.log(values);
     // In a real app, you'd handle authentication here.
     // For this example, we'll redirect to a default dashboard.
     // This should be replaced with actual auth logic and role-based redirection.
-    if (isLogin) {
-      // Simple redirect, in real app check credentials and role
-      router.push("/student/dashboard"); // Default redirect after login
-    } else {
-      const signupValues = values as SignupFormValues;
-      if (signupValues.role === "student") router.push("/student/dashboard");
-      else if (signupValues.role === "company") router.push("/company/dashboard");
-      else if (signupValues.role === "college_admin") router.push("/college/dashboard");
-      else if (signupValues.role === "platform_admin") router.push("/admin/dashboard");
-      else router.push("/login"); // Fallback
-    }
+    router.push("/student/dashboard"); // Default redirect after login
   }
 
   return (
@@ -73,30 +70,16 @@ export function AuthForm({ mode }: AuthFormProps) {
             <AppLogo />
           </div>
           <CardTitle className="text-2xl font-headline">
-            {isLogin ? "Welcome Back!" : "Create an Account"}
+            Welcome Back! {/* Title is now static */}
           </CardTitle>
           <CardDescription>
-            {isLogin ? "Log in to continue to CampusConnect." : "Join CampusConnect today."}
+            Log in to continue to CampusConnect. {/* Description is now static */}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {!isLogin && (
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              {/* FullName field removed */}
               <FormField
                 control={form.control}
                 name="email"
@@ -123,32 +106,14 @@ export function AuthForm({ mode }: AuthFormProps) {
                   </FormItem>
                 )}
               />
-              {!isLogin && (
-                 <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sign up as</FormLabel>
-                      <FormControl>
-                         <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                            <option value="student">Student</option>
-                            <option value="company">Company Representative</option>
-                            <option value="college_admin">College Admin</option>
-                            <option value="platform_admin">Platform Admin</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              {/* Role selection field removed */}
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                {isLogin ? "Log In" : "Sign Up"}
+                Log In {/* Button text is now static */}
               </Button>
             </form>
           </Form>
-          <div className="mt-6 text-center text-sm">
+          {/* Link to signup page removed */}
+          {/* <div className="mt-6 text-center text-sm">
             {isLogin ? (
               <>
                 Don&apos;t have an account?{" "}
@@ -164,7 +129,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </Link>
               </>
             )}
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

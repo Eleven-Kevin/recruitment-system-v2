@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BriefcaseBusiness, ArrowRight, UserCheck, School, Building } from "lucide-react";
@@ -16,9 +17,7 @@ export default function HomePage() {
             <Button variant="ghost" asChild>
               <Link href="/login">Login</Link>
             </Button>
-            <Button variant="default" className="bg-accent hover:bg-accent/90 text-accent-foreground" asChild>
-              <Link href="/signup">Sign Up</Link>
-            </Button>
+            {/* Sign Up button removed as per request */}
           </nav>
         </div>
       </header>
