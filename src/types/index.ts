@@ -1,22 +1,25 @@
 
 export interface Student {
-  id: number; // Changed to number for DB primary key
+  id: number;
   name: string;
   email: string;
-  password?: string; // For creation, SHOULD BE HASHED
-  role?: 'student' | 'admin' | 'company' | 'college'; // User role
+  password?: string; 
+  role?: 'student' | 'admin' | 'company' | 'college';
   studentId?: string;
   major?: string;
   graduationYear?: number;
   gpa?: number;
-  skills?: string[]; // Stored as JSON string in DB, parsed in/out
+  skills?: string[]; 
   preferences?: string;
   resumeUrl?: string;
   profilePictureUrl?: string;
+  companyId?: number; // Foreign key to companies table for users with 'company' role
+  // For AI flow input, might need to enrich with actual applications
+  pastApplications?: Application[]; // Or just an array of job IDs: string[]
 }
 
 export interface Company {
-  id: number; // Changed to number for DB primary key
+  id: number; 
   name: string;
   description?: string;
   website?: string;
@@ -24,48 +27,62 @@ export interface Company {
 }
 
 export interface Job {
-  id: number; // Changed to number for DB primary key
+  id: number; 
   title: string;
-  companyId: number; // Foreign key to Company
-  companyName?: string; // Denormalized for display, usually via JOIN
+  companyId: number; 
+  companyName?: string; 
   description: string;
-  requiredSkills?: string[]; // Stored as JSON string in DB
+  requiredSkills?: string[]; 
   requiredGpa?: number;
   location?: string;
-  postedDate: string; // ISO date string
+  postedDate: string; 
   status: 'open' | 'closed';
 }
 
 export interface Application {
-  id: number; // Changed to number for DB primary key
-  studentId: number; // Foreign key to Student
-  jobId: number; // Foreign key to Job
-  studentName?: string;
-  jobTitle?: string;
-  companyName?: string;
-  status: 'applied' | 'shortlisted' | 'interviewing' | 'offered' | 'rejected' | 'accepted';
-  appliedDate: string; // ISO date string
+  id: number; 
+  studentId: number; 
+  jobId: number; 
+  studentName?: string; // Denormalized
+  jobTitle?: string; // Denormalized
+  companyName?: string; // Denormalized
+  status: 'applied' | 'shortlisted' | 'interviewing' | 'offered' | 'rejected' | 'accepted' | 'placed'; // Added 'placed'
+  appliedDate: string; 
   notes?: string;
 }
 
+export interface Schedule {
+  id: number;
+  title: string;
+  description?: string;
+  date: string; // ISO date string
+  time?: string;
+  location?: string;
+  jobId?: number; // Optional: link to a specific job
+  companyId?: number; // Optional: link to a company (could be derived from job if jobId is present)
+  jobTitle?: string; // Denormalized for display
+  companyName?: string; // Denormalized for display
+}
+
+
 export interface Interview {
-  id: number; // Changed to number for DB primary key
+  id: number; 
   applicationId: number;
   companyId: number;
   studentId: number;
-  scheduledTime: string; // ISO date string
+  scheduledTime: string; 
   location?: string;
   notes?: string;
   feedback?: string;
 }
 
 export interface Notification {
-  id: string; // Keeping string if not directly from these DB tables or has external source
+  id: string; 
   userId: string;
   message: string;
   type: 'application_status' | 'interview_schedule' | 'company_update' | 'new_job' | 'general';
   isRead: boolean;
-  createdAt: string; // ISO date string
+  createdAt: string; 
   link?: string;
 }
 
@@ -77,9 +94,15 @@ export type RankedResume = {
 };
 
 export type RecommendedJob = {
-  jobId: number; // Changed to number
+  jobId: number; 
   jobTitle?: string;
   companyName?: string;
   relevanceScore: number;
   description?: string;
+  // Add other job fields needed for display if not fetching full Job object separately
+  location?: string;
+  requiredSkills?: string[];
+  requiredGpa?: number;
+  status?: 'open' | 'closed';
+  postedDate?: string;
 };

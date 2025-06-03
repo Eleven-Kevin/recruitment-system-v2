@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, LogOut, Settings, User, ShieldQuestion } from "lucide-react";
+import { Bell, LogOut, Settings, User, ShieldQuestion, Building } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,22 +23,26 @@ export function UserNav() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("");
   const [profileLink, setProfileLink] = useState("/login");
+  // No need to store companyId in state here, it's used directly for routing if needed
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true); // Indicate that component has mounted and localStorage can be accessed
+    setIsClient(true); 
     if (typeof window !== 'undefined') {
       const storedName = localStorage.getItem('userName');
       const storedRole = localStorage.getItem('userRole');
       const storedEmail = localStorage.getItem('userEmail');
+      // const storedCompanyId = localStorage.getItem('companyId'); // Can be fetched if needed
 
       if (storedName) setUserName(storedName);
       if (storedRole) {
         setUserRole(storedRole);
         if (storedRole === "student") {
           setProfileLink("/student/profile");
-        } else {
-          // Other roles might link to their dashboard or a generic settings page
+        } else if (storedRole === "company") {
+          setProfileLink("/company/dashboard"); // Or company profile page if one exists
+        }
+         else {
            setProfileLink(`/${storedRole}/dashboard`);
         }
       }
@@ -52,14 +56,13 @@ export function UserNav() {
       localStorage.removeItem('userRole');
       localStorage.removeItem('userName');
       localStorage.removeItem('userEmail');
+      localStorage.removeItem('companyId'); // Clear companyId on logout
     }
     router.push('/login?message=logged_out');
-    // Small delay to allow localStorage to clear before potential route protection kicks in
     setTimeout(() => router.refresh(), 100); 
   };
 
   if (!isClient) {
-    // Render a placeholder or null during SSR/pre-hydration to avoid localStorage errors
     return (
       <Button variant="ghost" className="relative h-10 w-10 rounded-full" disabled>
         <Avatar className="h-9 w-9">
@@ -98,8 +101,15 @@ export function UserNav() {
               </DropdownMenuItem>
             </Link>
           )}
-          {/* Link to role-specific dashboard if not a student */}
-          {userRole && userRole !== "student" && (
+           {userRole === "company" && (
+            <Link href="/company/job-postings" passHref> {/* Or a dedicated company profile page */}
+              <DropdownMenuItem>
+                <Building className="mr-2 h-4 w-4" />
+                <span>My Postings</span>
+              </DropdownMenuItem>
+            </Link>
+          )}
+          {userRole && userRole !== "student" && userRole !== "company" && (
              <Link href={profileLink} passHref>
                 <DropdownMenuItem>
                     <ShieldQuestion className="mr-2 h-4 w-4" />

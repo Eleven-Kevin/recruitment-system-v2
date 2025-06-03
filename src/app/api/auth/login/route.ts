@@ -15,16 +15,15 @@ export async function POST(request: NextRequest) {
     }
 
     const user: Student | undefined = await db.get(
-      'SELECT id, role, name, email, password FROM students WHERE email = ?',
+      'SELECT id, role, name, email, password, companyId FROM students WHERE email = ?',
       email
     );
 
-    if (!user) { // Check if user exists first
+    if (!user) { 
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
-    // If user exists, then check for the password
+    
     if (!user.password) { 
-      // This case implies an issue with the user's account data (e.g., password not set)
       console.error(`User with email ${email} found, but no password is set in the database.`);
       return NextResponse.json({ error: 'Invalid email or password. Account configuration issue.' }, { status: 401 });
     }
@@ -35,8 +34,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    // Do NOT send the password (even hashed) back in the response.
-    return NextResponse.json({ id: user.id, role: user.role, name: user.name, email: user.email });
+    const responsePayload: { id: number; role?: Student['role']; name: string; email: string; companyId?: number } = {
+      id: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+    };
+
+    if (user.role === 'company' && user.companyId) {
+      responsePayload.companyId = user.companyId;
+    }
+
+    return NextResponse.json(responsePayload);
 
   } catch (error) {
     console.error('Login failed:', error);
