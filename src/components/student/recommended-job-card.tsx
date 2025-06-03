@@ -1,3 +1,4 @@
+
 import type { RecommendedJob } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Building, ExternalLink, Percent } from "lucide-react";
 import Link from "next/link";
 
 interface RecommendedJobCardProps {
-  job: RecommendedJob;
+  job: RecommendedJob; // jobId is now number
 }
 
 export function RecommendedJobCard({ job }: RecommendedJobCardProps) {
@@ -33,8 +34,9 @@ export function RecommendedJobCard({ job }: RecommendedJobCardProps) {
       </CardContent>
       <div className="p-6 pt-0">
         <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground group">
-          {/* In a real app, this link would go to the job details page */}
-          <Link href={`/jobs/${job.jobId}`}> 
+          {/* In a real app, this link would go to the job details page for the specific job */}
+          {/* For now, this link might be a placeholder or link to a generic job details area if one exists */}
+          <Link href={`/student/job-details/${job.jobId}`}> {/* Updated placeholder link */}
             View Details <ExternalLink className="ml-2 h-4 w-4 group-hover:scale-110 transition-transform" />
           </Link>
         </Button>

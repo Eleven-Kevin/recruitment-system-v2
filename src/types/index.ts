@@ -1,19 +1,19 @@
 export interface Student {
-  id: string;
+  id: number; // Changed to number for DB primary key
   name: string;
   email: string;
   studentId?: string;
   major?: string;
   graduationYear?: number;
   gpa?: number;
-  skills?: string[];
+  skills?: string[]; // Stored as JSON string in DB, parsed in/out
   preferences?: string;
-  resumeUrl?: string; // Link to resume file
+  resumeUrl?: string;
   profilePictureUrl?: string;
 }
 
 export interface Company {
-  id: string;
+  id: number; // Changed to number for DB primary key
   name: string;
   description?: string;
   website?: string;
@@ -21,12 +21,12 @@ export interface Company {
 }
 
 export interface Job {
-  id: string;
+  id: number; // Changed to number for DB primary key
   title: string;
-  companyId: string;
-  companyName?: string; // Denormalized for display
+  companyId: number; // Foreign key to Company
+  companyName?: string; // Denormalized for display, usually via JOIN
   description: string;
-  requiredSkills?: string[];
+  requiredSkills?: string[]; // Stored as JSON string in DB
   requiredGpa?: number;
   location?: string;
   postedDate: string; // ISO date string
@@ -34,47 +34,47 @@ export interface Job {
 }
 
 export interface Application {
-  id: string;
-  studentId: string;
-  jobId: string;
-  studentName?: string; // Denormalized
-  jobTitle?: string; // Denormalized
-  companyName?: string; // Denormalized
+  id: number; // Changed to number for DB primary key
+  studentId: number; // Foreign key to Student
+  jobId: number; // Foreign key to Job
+  studentName?: string; 
+  jobTitle?: string; 
+  companyName?: string; 
   status: 'applied' | 'shortlisted' | 'interviewing' | 'offered' | 'rejected' | 'accepted';
   appliedDate: string; // ISO date string
   notes?: string;
 }
 
 export interface Interview {
-  id: string;
-  applicationId: string;
-  companyId: string;
-  studentId: string;
+  id: number; // Changed to number for DB primary key
+  applicationId: number;
+  companyId: number;
+  studentId: number;
   scheduledTime: string; // ISO date string
-  location?: string; // or "Online"
+  location?: string; 
   notes?: string;
-  feedback?: string; // from company
+  feedback?: string;
 }
 
 export interface Notification {
-  id: string;
-  userId: string; // Can be student, company rep, etc.
+  id: string; // Keeping string if not directly from these DB tables or has external source
+  userId: string; 
   message: string;
   type: 'application_status' | 'interview_schedule' | 'company_update' | 'new_job' | 'general';
   isRead: boolean;
   createdAt: string; // ISO date string
-  link?: string; // Optional link to relevant page
+  link?: string; 
 }
 
 // For AI flows
 export type RankedResume = {
-  resume: string; // Content of the resume or identifier
+  resume: string; 
   rank: number;
   reason: string;
 };
 
 export type RecommendedJob = {
-  jobId: string;
+  jobId: number; // Changed to number
   jobTitle?: string;
   companyName?: string;
   relevanceScore: number;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,28 +20,31 @@ import type { Student } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email(),
   studentId: z.string().optional(),
   major: z.string().optional(),
-  graduationYear: z.coerce.number().int().positive().optional(),
-  gpa: z.coerce.number().min(0).max(4).optional(), // Assuming a 4-point GPA scale
-  skills: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []), // Comma-separated string to array
+  graduationYear: z.coerce.number().int().positive().optional().nullable(),
+  gpa: z.coerce.number().min(0).max(4).optional().nullable(), 
+  skills: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
   preferences: z.string().optional(),
-  resumeUrl: z.string().url().optional().or(z.literal('')),
-  profilePictureUrl: z.string().url().optional().or(z.literal('')),
+  resumeUrl: z.string().url().optional().or(z.literal('')).nullable(),
+  profilePictureUrl: z.string().url().optional().or(z.literal('')).nullable(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface StudentProfileFormProps {
-  student?: Student; // Optional initial data
+  student?: Student | null; 
 }
 
 export function StudentProfileForm({ student }: StudentProfileFormProps) {
   const { toast } = useToast();
+  const router = useRouter();
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -48,8 +52,8 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
       email: student?.email || "",
       studentId: student?.studentId || "",
       major: student?.major || "",
-      graduationYear: student?.graduationYear || undefined,
-      gpa: student?.gpa || undefined,
+      graduationYear: student?.graduationYear || null,
+      gpa: student?.gpa || null,
       skills: student?.skills?.join(', ') || "",
       preferences: student?.preferences || "",
       resumeUrl: student?.resumeUrl || "",
@@ -57,13 +61,45 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
     },
   });
 
-  function onSubmit(data: ProfileFormValues) {
-    console.log("Profile data:", data);
-    // Here you would typically send the data to your backend API
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved successfully.",
-    });
+  async function onSubmit(data: ProfileFormValues) {
+    if (!student?.id) {
+        toast({ variant: "destructive", title: "Error", description: "Student ID is missing. Cannot update profile." });
+        return;
+    }
+    try {
+      const response = await fetch(`/api/students/${student.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+      });
+      router.refresh(); // Refresh server components to reflect changes
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: (error as Error).message || "Could not save your profile. Please try again.",
+      });
+    }
+  }
+
+  if (!student) {
+    return (
+        <Card>
+            <CardHeader><CardTitle>Loading Profile...</CardTitle></CardHeader>
+            <CardContent><p>Student data could not be loaded.</p></CardContent>
+        </Card>
+    )
   }
 
   return (
@@ -91,7 +127,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                     <FormItem>
                       <FormLabel>Profile Picture URL</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://example.com/your-image.png" {...field} />
+                        <Input placeholder="https://example.com/your-image.png" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormDescription>
                         Enter the URL of your profile picture. Use a square image for best results.
@@ -137,7 +173,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                   <FormItem>
                     <FormLabel>Student ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your student ID" {...field} />
+                      <Input placeholder="Your student ID" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -150,7 +186,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                   <FormItem>
                     <FormLabel>Major/Department</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Computer Science" {...field} />
+                      <Input placeholder="e.g., Computer Science" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,7 +199,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                   <FormItem>
                     <FormLabel>Graduation Year</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 2025" {...field} />
+                      <Input type="number" placeholder="e.g., 2025" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -176,7 +212,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                   <FormItem>
                     <FormLabel>GPA</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="e.g., 3.8" {...field} />
+                      <Input type="number" step="0.01" placeholder="e.g., 3.8" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -208,7 +244,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                 <FormItem>
                   <FormLabel>Resume URL</FormLabel>
                   <FormControl>
-                    <Input placeholder="Link to your online resume (e.g., Google Drive, Dropbox)" {...field} />
+                    <Input placeholder="Link to your online resume (e.g., Google Drive, Dropbox)" {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormDescription>
                     Provide a publicly accessible link to your resume PDF.
@@ -229,6 +265,7 @@ export function StudentProfileForm({ student }: StudentProfileFormProps) {
                       placeholder="Describe your job preferences, desired roles, or industries..."
                       className="resize-y min-h-[100px]"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
