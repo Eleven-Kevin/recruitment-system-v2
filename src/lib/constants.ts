@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Users, Building, Briefcase, FileText, BarChart3, BookUser, Brain, Search, Send } from 'lucide-react';
+import { LayoutDashboard, Users, Building, Briefcase, FileText, BarChart3, BookUser, Brain, Search, Send, User } from 'lucide-react';
 
 export type NavItem = {
   href: string;
