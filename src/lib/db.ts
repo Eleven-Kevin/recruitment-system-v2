@@ -19,6 +19,7 @@ export async function getDb() {
 export async function initializeDb() {
   const dbInstance = await getDb();
 
+  // Create tables if they don't exist
   await dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +35,7 @@ export async function initializeDb() {
       preferences TEXT,
       resumeUrl TEXT,
       profilePictureUrl TEXT,
-      companyId INTEGER, -- Added for company users
+      companyId INTEGER, -- For company users
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
     );
 
@@ -56,7 +57,7 @@ export async function initializeDb() {
       location TEXT,
       postedDate TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'open',
-      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE -- Cascade delete if company is removed
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS applications (
@@ -78,11 +79,27 @@ export async function initializeDb() {
         time TEXT,
         location TEXT,
         jobId INTEGER,
-        companyId INTEGER, -- Denormalized for easier lookup/filtering, or can be derived via jobId
+        companyId INTEGER,
         FOREIGN KEY (jobId) REFERENCES jobs(id) ON DELETE SET NULL,
         FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
     );
   `);
+
+  // Check and add companyId column to students table if it doesn't exist (simple migration)
+  try {
+    const studentsTableInfo = await dbInstance.all("PRAGMA table_info(students);");
+    const companyIdColumnExists = studentsTableInfo.some(column => column.name === 'companyId');
+    if (!companyIdColumnExists) {
+      await dbInstance.exec('ALTER TABLE students ADD COLUMN companyId INTEGER REFERENCES companies(id) ON DELETE SET NULL;');
+      console.log("Successfully added missing 'companyId' column to 'students' table.");
+    }
+  } catch (e) {
+    console.error("Error checking/altering students table for companyId:", e);
+    // If PRAGMA table_info fails, it might be because the table doesn't exist yet,
+    // which is fine as CREATE TABLE above will handle it.
+    // If ALTER TABLE fails, it's a more significant issue.
+  }
+
 
   await seedData(dbInstance);
 }
@@ -91,42 +108,62 @@ async function seedData(dbInstance: Database) {
   const userCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM students');
   const userCount = userCountResult?.count || 0;
 
-  // Seed Companies First if they don't exist
   const companyCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM companies');
   let companyCount = companyCountResult?.count || 0;
   let techSolutionsCompanyId: number | undefined;
+  let innovatechCompanyId: number | undefined;
+  let webworksCompanyId: number | undefined;
+  let serversideCompanyId: number | undefined;
+  let datainsightsCompanyId: number | undefined;
+
 
   if (companyCount === 0) {
-    const result = await dbInstance.run(
+    const resultTech = await dbInstance.run(
       "INSERT INTO companies (name, description, website, logoUrl) VALUES (?, ?, ?, ?)",
       "Tech Solutions Inc.", "Leading provider of innovative tech solutions.", "https://techsolutions.example.com", "https://placehold.co/100x100.png?text=TS"
     );
-    techSolutionsCompanyId = result.lastID;
-    await dbInstance.run(
+    techSolutionsCompanyId = resultTech.lastID;
+
+    const resultInnovatech = await dbInstance.run(
       "INSERT INTO companies (name, description, website, logoUrl) VALUES (?, ?, ?, ?)",
       "Innovatech", "Pioneering future technologies.", "https://innovatech.example.com", "https://placehold.co/100x100.png?text=IT"
     );
-    await dbInstance.run(
+    innovatechCompanyId = resultInnovatech.lastID;
+
+    const resultWebworks = await dbInstance.run(
       "INSERT INTO companies (name, description, website, logoUrl) VALUES (?, ?, ?, ?)",
       "WebWorks", "Crafting beautiful and functional web experiences.", "https://webworks.example.com", "https://placehold.co/100x100.png?text=WW"
     );
-    await dbInstance.run(
+    webworksCompanyId = resultWebworks.lastID;
+
+    const resultServerside = await dbInstance.run(
       "INSERT INTO companies (name, description, website, logoUrl) VALUES (?, ?, ?, ?)",
       "ServerSide Co", "Robust backend solutions for enterprise.", "https://serverside.example.com", "https://placehold.co/100x100.png?text=SS"
     );
-    await dbInstance.run(
+    serversideCompanyId = resultServerside.lastID;
+
+    const resultDatainsights = await dbInstance.run(
       "INSERT INTO companies (name, description, website, logoUrl) VALUES (?, ?, ?, ?)",
       "Data Insights", "Unlocking the power of data.", "https://datainsights.example.com", "https://placehold.co/100x100.png?text=DI"
     );
-    companyCount = 5; // update count
+    datainsightsCompanyId = resultDatainsights.lastID;
+
+    companyCount = 5;
   } else {
     const techSolutions = await dbInstance.get("SELECT id FROM companies WHERE name = 'Tech Solutions Inc.'");
     techSolutionsCompanyId = techSolutions?.id;
+    const innovatech = await dbInstance.get("SELECT id FROM companies WHERE name = 'Innovatech'");
+    innovatechCompanyId = innovatech?.id;
+    const webworks = await dbInstance.get("SELECT id FROM companies WHERE name = 'WebWorks'");
+    webworksCompanyId = webworks?.id;
+    const serverside = await dbInstance.get("SELECT id FROM companies WHERE name = 'ServerSide Co'");
+    serversideCompanyId = serverside?.id;
+    const datainsights = await dbInstance.get("SELECT id FROM companies WHERE name = 'Data Insights'");
+    datainsightsCompanyId = datainsights?.id;
   }
 
 
   if (userCount === 0) {
-    // Seed Admin User
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       "Admin User", "admin@example.com", pseudoHashPassword("adminpassword"), "admin", "ADMIN001", "Platform Administration", null, null,
@@ -135,8 +172,7 @@ async function seedData(dbInstance: Database) {
       null, "https://placehold.co/150x150.png?text=AU"
     );
 
-    // Seed Student Users
-    const studentAlex = await dbInstance.run(
+    await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       "Alex Johnson", "alex.johnson@example.com", pseudoHashPassword("password123"), "student", "S1001", "Computer Science", 2025, 3.75,
       JSON.stringify(["JavaScript", "React", "Node.js", "Python"]),
@@ -149,24 +185,29 @@ async function seedData(dbInstance: Database) {
       JSON.stringify(["Java", "Spring Boot", "Microservices", "SQL", "Agile"]),
       "https://placehold.co/100x100.png?text=AW"
     );
-    const studentBob = await dbInstance.run(
+    await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       "Bob The Builder", "bob@example.com", pseudoHashPassword("password123"), "student", "S1003", "Software Engineering", 2025, 3.5,
       JSON.stringify(["Python", "Django", "JavaScript", "React", "DevOps"]),
       "https://placehold.co/100x100.png?text=BB"
     );
 
-    // Seed Company Representative User
     if (techSolutionsCompanyId) {
       await dbInstance.run(
         "INSERT INTO students (name, email, password, role, studentId, preferences, profilePictureUrl, companyId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        "Company Rep", "company@example.com", pseudoHashPassword("companypassword"), "company", "COMPREP001",
-        "Representing Tech Solutions Inc.", "https://placehold.co/150x150.png?text=CR", techSolutionsCompanyId
+        "Company Rep TechSolutions", "company@example.com", pseudoHashPassword("companypassword"), "company", "COMPREP001",
+        "Representing Tech Solutions Inc.", "https://placehold.co/150x150.png?text=CRTS", techSolutionsCompanyId
+      );
+    }
+     if (innovatechCompanyId) {
+      await dbInstance.run(
+        "INSERT INTO students (name, email, password, role, studentId, preferences, profilePictureUrl, companyId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "Rep Innovatech", "rep.innovatech@example.com", pseudoHashPassword("companypassword"), "company", "COMPREP002",
+        "Representing Innovatech.", "https://placehold.co/150x150.png?text=CRI", innovatechCompanyId
       );
     }
 
 
-    // Seed College Staff User
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, preferences, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       "College Staff", "college@example.com", pseudoHashPassword("collegepassword"), "college", "COLLSTAFF001",
@@ -181,60 +222,52 @@ async function seedData(dbInstance: Database) {
 
 
   if (jobCount === 0) {
-    const company1 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'WebWorks');
-    const company2 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'ServerSide Co');
-    const company3 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'Data Insights');
-    const company4 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'Tech Solutions Inc.');
-
-
-    if (company1) {
+    if (webworksCompanyId) {
         const res1 = await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Frontend Developer", company1.id, "Develop modern web UIs.", JSON.stringify(["React", "TypeScript"]), 3.0, "Remote", new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Frontend Developer", webworksCompanyId, "Develop modern web UIs.", JSON.stringify(["React", "TypeScript"]), 3.0, "Remote", new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
         job1Id = res1.lastID;
         await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Full Stack Engineer", company1.id, "Work on both frontend and backend.", JSON.stringify(["React", "Node.js", "SQL"]), 3.3, "New York, NY", new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Full Stack Engineer", webworksCompanyId, "Work on both frontend and backend.", JSON.stringify(["React", "Node.js", "SQL"]), 3.3, "New York, NY", new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
     }
-     if (company2) {
+     if (serversideCompanyId) {
         const res2 = await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Backend Developer", company2.id, "Build robust backend systems.", JSON.stringify(["Node.js", "MongoDB"]), 3.2, "San Francisco, CA", new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Backend Developer", serversideCompanyId, "Build robust backend systems.", JSON.stringify(["Node.js", "MongoDB"]), 3.2, "San Francisco, CA", new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
         job2Id = res2.lastID;
         await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "DevOps Engineer", company2.id, "Manage infrastructure and deployments.", JSON.stringify(["AWS", "Docker", "Kubernetes"]), 3.0, "Remote", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "DevOps Engineer", serversideCompanyId, "Manage infrastructure and deployments.", JSON.stringify(["AWS", "Docker", "Kubernetes"]), 3.0, "Remote", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
     }
-    if (company3) {
+    if (datainsightsCompanyId) {
         await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Data Scientist", company3.id, "Analyze data and build models.", JSON.stringify(["Python", "R", "Machine Learning"]), 3.5, "Austin, TX", new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Data Scientist", datainsightsCompanyId, "Analyze data and build models.", JSON.stringify(["Python", "R", "Machine Learning"]), 3.5, "Austin, TX", new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
          await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "AI Specialist", company3.id, "Research and implement AI solutions.", JSON.stringify(["Python", "TensorFlow", "NLP"]), 3.7, "Boston, MA", new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "AI Specialist", datainsightsCompanyId, "Research and implement AI solutions.", JSON.stringify(["Python", "TensorFlow", "NLP"]), 3.7, "Boston, MA", new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
     }
-    if (company4) { // This is Tech Solutions Inc.
+    if (techSolutionsCompanyId) {
        await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Graduate Software Engineer", company4.id, "Join our dynamic team to build cutting-edge software solutions. Ideal for recent graduates.", JSON.stringify(["Java", "Spring Boot", "SQL"]), 3.2, "San Francisco, CA", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Graduate Software Engineer", techSolutionsCompanyId, "Join our dynamic team to build cutting-edge software solutions. Ideal for recent graduates.", JSON.stringify(["Java", "Spring Boot", "SQL"]), 3.2, "San Francisco, CA", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), "open"
         );
     }
-    jobCount = 6; // update count
+    jobCount = 7;
   } else {
-    // Get existing job IDs if seeding jobs is skipped, for applications seeding
-    const jobOne = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Frontend Developer'");
+    const jobOne = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Frontend Developer' AND companyId = (SELECT id FROM companies WHERE name = 'WebWorks')");
     job1Id = jobOne?.id;
-    const jobTwo = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Backend Developer'");
+    const jobTwo = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Backend Developer' AND companyId = (SELECT id FROM companies WHERE name = 'ServerSide Co')");
     job2Id = jobTwo?.id;
   }
 
-  // Seed Applications
   const appCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM applications');
   const appCount = appCountResult?.count || 0;
   if (appCount === 0) {
@@ -255,35 +288,30 @@ async function seedData(dbInstance: Database) {
     }
   }
 
-  // Seed Schedules
   const scheduleCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM schedules');
   if ((scheduleCountResult?.count || 0) === 0) {
-    const webworksCompany = await dbInstance.get("SELECT id FROM companies WHERE name = 'WebWorks'");
-    const webworksJob = webworksCompany ? await dbInstance.get("SELECT id FROM jobs WHERE companyId = ? AND title = 'Frontend Developer'", webworksCompany.id) : null;
-
-    if (webworksCompany && webworksJob) {
+    if (webworksCompanyId && job1Id) { // job1Id is Frontend Developer from WebWorks
         await dbInstance.run(
             "INSERT INTO schedules (title, description, date, time, location, jobId, companyId) VALUES (?, ?, ?, ?, ?, ?, ?)",
             "WebWorks Frontend Interviews",
             "First round interviews for Frontend Developer applicants.",
-            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             "10:00 AM - 02:00 PM",
             "Virtual via Google Meet",
-            webworksJob.id,
-            webworksCompany.id
+            job1Id,
+            webworksCompanyId
         );
     }
 
-    const techSolutionsCompany = await dbInstance.get("SELECT id FROM companies WHERE name = 'Tech Solutions Inc.'");
-    if (techSolutionsCompany) {
+    if (techSolutionsCompanyId) {
          await dbInstance.run(
             "INSERT INTO schedules (title, description, date, time, location, companyId) VALUES (?, ?, ?, ?, ?, ?)",
             "Tech Solutions Campus Drive",
             "General campus recruitment drive for various roles.",
-            new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
+            new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
             "09:00 AM - 05:00 PM",
             "Main College Auditorium",
-            techSolutionsCompany.id
+            techSolutionsCompanyId
         );
     }
   }
@@ -292,4 +320,7 @@ async function seedData(dbInstance: Database) {
   console.log("Database initialized and seeded if necessary (with pseudo-hashed passwords).");
 }
 
-initializeDb().catch(console.error);
+initializeDb().catch(error => {
+  console.error("Failed to initialize database:", error);
+  // Potentially exit or handle critical failure if DB init is essential at startup
+});
