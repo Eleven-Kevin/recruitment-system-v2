@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
-    
+
     // Parse skills from JSON string
     if (student.skills && typeof student.skills === 'string') {
       try {
@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (!name || !email) {
         return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
     }
-    
+
     const skillsJson = skills ? JSON.stringify(skills) : null;
 
     const result = await db.run(
@@ -71,7 +71,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const updatedStudent = await db.get('SELECT * FROM students WHERE id = ?', studentIdParam);
-     if (updatedStudent && updatedStudent.skills && typeof updatedStudent.skills === 'string') {
+    if (!updatedStudent) {
+        console.error(`Failed to retrieve updated student with ID ${studentIdParam}.`);
+        return NextResponse.json({ error: 'Failed to update student or retrieve details post-update.' }, { status: 500 });
+    }
+
+    if (updatedStudent && updatedStudent.skills && typeof updatedStudent.skills === 'string') {
       updatedStudent.skills = JSON.parse(updatedStudent.skills);
     } else if (updatedStudent && !updatedStudent.skills) {
       updatedStudent.skills = [];
@@ -94,9 +99,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (isNaN(studentId)) {
       return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
     }
-
-    // Optional: Check for related applications before deleting if strict referential integrity is desired
-    // For now, directly deleting. DB constraints should handle if applications exist.
 
     const result = await db.run('DELETE FROM students WHERE id = ?', studentId);
 

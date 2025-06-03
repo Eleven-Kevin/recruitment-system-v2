@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
     const students: Student[] = await db.all('SELECT id, name, email, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl FROM students WHERE role = ? ORDER BY name ASC', 'student');
-    
+
     students.forEach(student => {
       if (student.skills && typeof student.skills === 'string') {
         try {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         student.skills = [];
       }
     });
-    
+
     return NextResponse.json(students);
   } catch (error: any) {
     console.error('Failed to fetch students:', error);
@@ -56,6 +56,11 @@ export async function POST(request: NextRequest) {
 
     // Do not return password, even hashed, in the response
     const newStudent = await db.get('SELECT id, name, email, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl FROM students WHERE id = ?', result.lastID);
+    if (!newStudent) {
+        console.error(`Failed to retrieve newly created student with ID ${result.lastID}.`);
+        return NextResponse.json({ error: 'Failed to create student or retrieve details post-creation.' }, { status: 500 });
+    }
+
     if (newStudent && newStudent.skills && typeof newStudent.skills === 'string') {
         newStudent.skills = JSON.parse(newStudent.skills);
     } else if (newStudent && !newStudent.skills) {

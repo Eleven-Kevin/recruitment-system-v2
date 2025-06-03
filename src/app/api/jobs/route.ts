@@ -11,17 +11,21 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
 
     let query = `
-      SELECT 
-        j.id, j.title, j.companyId, c.name as companyName, j.description, 
-        j.requiredSkills, j.requiredGpa, j.location, j.postedDate, j.status 
+      SELECT
+        j.id, j.title, j.companyId, c.name as companyName, j.description,
+        j.requiredSkills, j.requiredGpa, j.location, j.postedDate, j.status
       FROM jobs j
       JOIN companies c ON j.companyId = c.id
     `;
     const queryParams: any[] = [];
 
     if (companyId) {
+      const parsedCompanyId = parseInt(companyId, 10);
+      if (isNaN(parsedCompanyId)) {
+        return NextResponse.json({ error: 'Invalid companyId format' }, { status: 400 });
+      }
       query += ' WHERE j.companyId = ?';
-      queryParams.push(parseInt(companyId, 10));
+      queryParams.push(parsedCompanyId);
     }
     query += ' ORDER BY j.postedDate DESC';
 
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
     const body: Omit<Job, 'id' | 'postedDate' | 'status' | 'companyName'> & {companyId: number} = await request.json();
-    
+
     const { title, companyId, description, requiredSkills, requiredGpa, location } = body;
 
     if (!title || !companyId || !description) {
@@ -80,6 +84,11 @@ export async function POST(request: NextRequest) {
     }
 
     const newJob = await db.get('SELECT j.*, c.name as companyName FROM jobs j JOIN companies c ON j.companyId = c.id WHERE j.id = ?', result.lastID);
+    if (!newJob) {
+        console.error(`Failed to retrieve newly created job with ID ${result.lastID}. Company ID might be an issue: ${companyId}`);
+        return NextResponse.json({ error: 'Failed to create job or retrieve it post-creation.' }, { status: 500 });
+    }
+
     if (newJob && newJob.requiredSkills && typeof newJob.requiredSkills === 'string') {
         newJob.requiredSkills = JSON.parse(newJob.requiredSkills);
     } else if (newJob && !newJob.requiredSkills) {
