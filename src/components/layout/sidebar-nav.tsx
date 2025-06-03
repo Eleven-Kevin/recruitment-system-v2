@@ -29,7 +29,8 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
     <nav className={cn('flex flex-col gap-1 px-2 py-4', className)}>
       {items.map((item, index) => {
         // Dynamically get the icon component
-        const Icon = item.iconName ? LucideIcons[item.iconName as keyof typeof LucideIcons] : LucideIcons.HelpCircle;
+        // Using a more general type assertion for LucideIcons index
+        const IconComponent = LucideIcons[item.iconName as keyof typeof LucideIcons] || LucideIcons.HelpCircle;
         const isActive = item.matchExact ? pathname === item.href : pathname.startsWith(item.href);
 
         if (item.subItems && item.subItems.length > 0) {
@@ -40,17 +41,17 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     isActive && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90",
-                    " [&[data-state=open]>svg:last-child]:rotate-0"
+                    " [&[data-state=open]>svg:last-child]:rotate-0" // Keep chevron rotation default
                   )}
                 >
                   <div className="flex items-center gap-3">
-                     <Icon className="h-4 w-4" />
+                     <IconComponent className="h-4 w-4" />
                     {item.label}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="ml-4 mt-1 border-l border-sidebar-border pl-4">
                   {item.subItems.map((subItem) => {
-                    const SubIcon = subItem.iconName ? LucideIcons[subItem.iconName as keyof typeof LucideIcons] : LucideIcons.HelpCircle;
+                    const SubIconComponent = LucideIcons[subItem.iconName as keyof typeof LucideIcons] || LucideIcons.HelpCircle;
                     const isSubActive = subItem.matchExact ? pathname === subItem.href : pathname.startsWith(subItem.href);
                     return (
                       <Link
@@ -61,7 +62,7 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
                           isSubActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
                         )}
                       >
-                        <SubIcon className="h-4 w-4" />
+                        <SubIconComponent className="h-4 w-4" />
                         {subItem.label}
                       </Link>
                     );
@@ -81,7 +82,7 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
               isActive && 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90'
             )}
           >
-            <Icon className="h-4 w-4" />
+            <IconComponent className="h-4 w-4" />
             {item.label}
           </Link>
         );
