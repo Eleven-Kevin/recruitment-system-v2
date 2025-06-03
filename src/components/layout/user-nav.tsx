@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,49 +14,72 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bell, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-// Determine current role based on path. This is a simplified approach.
-// In a real app, this would come from auth context.
-const getRoleFromPath = (path: string): string | null => {
-  if (path.startsWith("/student")) return "student";
-  if (path.startsWith("/admin")) return "admin";
-  if (path.startsWith("/company")) return "company";
-  if (path.startsWith("/college")) return "college";
-  return null;
-};
+import { useRouter } from "next/navigation"; // Changed from usePathname
+import { useEffect, useState } from "react";
 
 export function UserNav() {
-  const pathname = usePathname();
-  const role = getRoleFromPath(pathname);
+  const router = useRouter();
+  const [userName, setUserName] = useState("CampusConnect User");
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("user@example.com");
+  const [profileLink, setProfileLink] = useState("/login"); // Default if not logged in or not student
 
-  let profileLink = "/login";
-  if (role === "student") profileLink = "/student/profile";
-  // Other roles might not have a dedicated "profile" page in this structure
-  // but could link to their dashboard or settings.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedName = localStorage.getItem('userName');
+      const storedRole = localStorage.getItem('userRole');
+      const storedEmail = localStorage.getItem('userEmail');
+
+      if (storedName) setUserName(storedName);
+      if (storedRole) {
+        setUserRole(storedRole);
+        if (storedRole === "student") {
+          setProfileLink("/student/profile");
+        } else {
+          // Other roles might not have a dedicated "profile" page,
+          // or you might want to link them to their respective dashboards or a settings page.
+          // For now, keep it generic or link to their dashboard if desired.
+          setProfileLink(`/${storedRole}/dashboard`); 
+        }
+      }
+      if (storedEmail) setUserEmail(storedEmail);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+    }
+    // Optionally, inform backend about logout if session is managed there
+    router.push('/login');
+  };
+
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="person avatar" />
-            <AvatarFallback>CC</AvatarFallback>
+            <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="person avatar"/>
+            <AvatarFallback>{userName.substring(0,2).toUpperCase() || "CC"}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">CampusConnect User</p>
+            <p className="text-sm font-medium leading-none">{userName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {role ? `${role.charAt(0).toUpperCase() + role.slice(1)} Account` : "user@example.com"}
+              {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Account` : userEmail}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {role === "student" && (
+          {userRole === "student" && ( // Only show profile link for students or adapt as needed
             <Link href={profileLink} passHref>
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
@@ -75,12 +99,11 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <Link href="/login" passHref>
-          <DropdownMenuItem>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </Link>
+        {/* Use Button for logout to attach onClick handler */}
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

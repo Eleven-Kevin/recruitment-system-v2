@@ -15,51 +15,79 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// Link component is no longer needed here if we remove the bottom link entirely
-// import Link from "next/link";
 import { AppLogo } from "../core/app-logo";
 import { useRouter } from "next/navigation";
-
-// AuthFormProps is no longer needed as 'mode' is removed
-// interface AuthFormProps {
-//   mode: "login" | "signup";
-// }
+import { useToast } from "@/hooks/use-toast"; // Added useToast
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password is required." }), // Min 1 char for prototype
 });
 
-// signupSchema is removed
-// const signupSchema = z.object({
-//   fullName: z.string().min(2, { message: "Full name is required." }),
-//   email: z.string().email({ message: "Invalid email address." }),
-//   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-//   role: z.enum(["student", "company", "college_admin", "platform_admin"]),
-// });
-
 type LoginFormValues = z.infer<typeof loginSchema>;
-// SignupFormValues is removed
-// type SignupFormValues = z.infer<typeof signupSchema>;
 
-export function AuthForm() { // Removed mode prop
+export function AuthForm() {
   const router = useRouter();
-  // isLogin is no longer needed
-  // const isLogin = mode === "login";
-  // schema is now always loginSchema
+  const { toast } = useToast(); // Initialize toast
   const schema = loginSchema;
 
-  const form = useForm<LoginFormValues>({ // Type is now just LoginFormValues
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" }, // Default values are for login
+    defaultValues: { email: "", password: "" },
   });
 
-  function onSubmit(values: LoginFormValues) { // Parameter type is now just LoginFormValues
-    console.log(values);
-    // In a real app, you'd handle authentication here.
-    // For this example, we'll redirect to a default dashboard.
-    // This should be replaced with actual auth logic and role-based redirection.
-    router.push("/student/dashboard"); // Default redirect after login
+  async function onSubmit(values: LoginFormValues) {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed. Please check your credentials.');
+      }
+
+      // Store user info in localStorage (for prototype purposes)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('userId', data.id.toString());
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('userName', data.name);
+        localStorage.setItem('userEmail', data.email);
+      }
+      
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${data.name}!`,
+      });
+
+      // Redirect based on role
+      switch (data.role) {
+        case 'admin':
+          router.push('/admin/dashboard');
+          break;
+        case 'student':
+          router.push('/student/dashboard');
+          break;
+        case 'company':
+          router.push('/company/dashboard');
+          break;
+        case 'college':
+          router.push('/college/dashboard');
+          break;
+        default:
+          router.push('/'); // Fallback to home page
+      }
+    } catch (error: any) {
+      console.error("Login submission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    }
   }
 
   return (
@@ -70,16 +98,15 @@ export function AuthForm() { // Removed mode prop
             <AppLogo />
           </div>
           <CardTitle className="text-2xl font-headline">
-            Welcome Back! {/* Title is now static */}
+            Welcome Back!
           </CardTitle>
           <CardDescription>
-            Log in to continue to CampusConnect. {/* Description is now static */}
+            Log in to continue to CampusConnect.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* FullName field removed */}
               <FormField
                 control={form.control}
                 name="email"
@@ -106,30 +133,11 @@ export function AuthForm() { // Removed mode prop
                   </FormItem>
                 )}
               />
-              {/* Role selection field removed */}
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                Log In {/* Button text is now static */}
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Logging in..." : "Log In"}
               </Button>
             </form>
           </Form>
-          {/* Link to signup page removed */}
-          {/* <div className="mt-6 text-center text-sm">
-            {isLogin ? (
-              <>
-                Don&apos;t have an account?{" "}
-                <Link href="/signup" className="font-medium text-accent hover:underline">
-                  Sign up
-                </Link>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <Link href="/login" className="font-medium text-accent hover:underline">
-                  Log in
-                </Link>
-              </>
-            )}
-          </div> */}
         </CardContent>
       </Card>
     </div>

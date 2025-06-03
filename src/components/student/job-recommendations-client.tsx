@@ -1,7 +1,7 @@
 
 "use client";
 
-import { recommendJobs, type RecommendJobsInput, type RecommendJobsOutput } from "@/ai/flows/recommend-jobs";
+import { recommendJobs, type RecommendJobsInput } from "@/ai/flows/recommend-jobs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { Loader2, Filter, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
-async function fetchStudentData(studentId: number): Promise<Student | null> {
+async function fetchStudentDataById(studentId: string | number): Promise<Student | null> {
   try {
     const res = await fetch(`/api/students/${studentId}`);
     if (!res.ok) {
@@ -21,7 +21,6 @@ async function fetchStudentData(studentId: number): Promise<Student | null> {
       return null;
     }
     const student: Student = await res.json();
-     // Ensure skills is an array
     if (student && typeof student.skills === 'string') {
       student.skills = JSON.parse(student.skills);
     } else if (student && !student.skills) {
@@ -42,7 +41,6 @@ async function fetchAllJobs(): Promise<Job[]> {
       return [];
     }
     const jobs: Job[] = await res.json();
-    // Ensure skills is an array for each job
     return jobs.map(job => ({
       ...job,
       requiredSkills: job.requiredSkills && Array.isArray(job.requiredSkills) ? job.requiredSkills : [],
@@ -58,37 +56,44 @@ export function JobRecommendationsClient() {
   const [student, setStudent] = useState<Student | null>(null);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [recommendations, setRecommendations] = useState<UIRecRecommendedJob[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Start loading true for initial data fetch
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [minGpaFilter, setMinGpaFilter] = useState<number | undefined>(undefined); // Changed name to avoid conflict
+  const [minGpaFilter, setMinGpaFilter] = useState<number | undefined>(undefined);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     async function loadInitialData() {
-      setIsLoading(true);
+      setIsLoadingInitial(true);
       setError(null);
-      setLoadingProgress(10); // Initial data load progress
-      // For demo, using student ID 1. In real app, get from session.
-      const fetchedStudent = await fetchStudentData(1); 
+      setLoadingProgress(10);
+
+      let fetchedStudent: Student | null = null;
+      if (typeof window !== 'undefined') {
+          const studentId = localStorage.getItem('userId');
+          if (studentId) {
+            fetchedStudent = await fetchStudentDataById(studentId);
+          } else {
+            setError("Please log in to get job recommendations.");
+          }
+      }
       setLoadingProgress(40);
       const fetchedJobs = await fetchAllJobs();
       setLoadingProgress(70);
 
       if (fetchedStudent) setStudent(fetchedStudent);
-      else setError("Failed to load student profile for recommendations.");
+      else if (!error) setError("Failed to load student profile for recommendations.");
       
       setAllJobs(fetchedJobs);
       if (fetchedJobs.length === 0 && !error) setError("No jobs available to recommend from.");
       
       setLoadingProgress(100);
-      setIsLoading(false);
+      setIsLoadingInitial(false);
 
       if (fetchedStudent && fetchedJobs.length > 0) {
-        // Automatically fetch recommendations once data is loaded
         await generateRecommendations(fetchedStudent, fetchedJobs);
       }
     }
@@ -97,20 +102,25 @@ export function JobRecommendationsClient() {
   }, []);
 
 
-  const generateRecommendations = async (currentStudent?: Student | null, currentJobs?: Job[] | null) => {
-    const stud = currentStudent || student;
-    const jobs = currentJobs || allJobs;
+  const generateRecommendations = async (currentStudentParam?: Student | null, currentJobsParam?: Job[] | null) => {
+    const studToUse = currentStudentParam || student;
+    const jobsToUse = currentJobsParam || allJobs;
 
-    if (!stud || jobs.length === 0) {
-      toast({ variant: "destructive", title: "Cannot Generate", description: "Student data or job list is missing." });
-      setError(stud ? "No jobs available for recommendations." : "Student profile not loaded.");
-      setIsGenerating(false);
-      return;
+    if (!studToUse) {
+        setError("Student profile not loaded. Please log in.");
+        setIsGenerating(false);
+        return;
     }
+    if (jobsToUse.length === 0) {
+        setError("No jobs available for recommendations.");
+        setIsGenerating(false);
+        return;
+    }
+
 
     setIsGenerating(true);
     setError(null);
-    setRecommendations([]);
+    setRecommendations([]); // Clear previous recommendations
     setLoadingProgress(0);
 
     const progressInterval = setInterval(() => {
@@ -119,12 +129,11 @@ export function JobRecommendationsClient() {
 
     try {
       const input: RecommendJobsInput = {
-        studentSkills: stud.skills || [],
-        studentGPA: stud.gpa || 0,
-        // Assuming student.pastApplications is not yet available from DB, pass empty or fetch if implemented
-        pastApplications: (stud as any).pastApplications || [], 
-        allJobs: jobs.map(job => ({
-          jobId: job.id.toString(), // Genkit flow expects string jobId
+        studentSkills: studToUse.skills || [],
+        studentGPA: studToUse.gpa || 0,
+        pastApplications: (studToUse as any).pastApplications || [], 
+        allJobs: jobsToUse.map(job => ({
+          jobId: job.id.toString(), 
           jobTitle: job.title,
           jobDescription: job.description,
           requiredSkills: job.requiredSkills || [],
@@ -135,15 +144,15 @@ export function JobRecommendationsClient() {
       const result = await recommendJobs(input);
       
       const uiRecommendations = result.map(rec => {
-        const jobDetails = jobs.find(j => j.id.toString() === rec.jobId);
+        const jobDetails = jobsToUse.find(j => j.id.toString() === rec.jobId);
         return {
           ...rec,
-          jobId: parseInt(rec.jobId, 10), // Convert back to number for UI type
+          jobId: parseInt(rec.jobId, 10), 
           jobTitle: jobDetails?.title,
           companyName: jobDetails?.companyName,
           description: jobDetails?.description,
         };
-      });
+      }).sort((a, b) => b.relevanceScore - a.relevanceScore); // Sort by relevance
       
       setRecommendations(uiRecommendations);
       toast({ title: "Recommendations Generated", description: `Found ${uiRecommendations.length} tailored job recommendations.` });
@@ -166,15 +175,20 @@ export function JobRecommendationsClient() {
              (minGpaFilter === undefined || (jobDetails?.requiredGpa || 0) >= minGpaFilter);
     });
 
-  if (isLoading) {
+  if (isLoadingInitial) {
     return (
       <div className="space-y-2 pt-4 text-center">
         <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
-        <p className="text-muted-foreground">Loading initial data...</p>
+        <p className="text-muted-foreground">Loading initial data and recommendations...</p>
         <Progress value={loadingProgress} className="w-1/2 mx-auto" />
       </div>
     );
   }
+  
+  if (error && !isGenerating) { // Show general error if not specifically loading recommendations
+    return <p className="text-destructive text-center py-4">{error}</p>;
+  }
+
 
   return (
     <div className="space-y-6">
@@ -222,7 +236,8 @@ export function JobRecommendationsClient() {
         </div>
       )}
 
-      {error && <p className="text-destructive text-center py-4">{error}</p>}
+      {error && isGenerating && <p className="text-destructive text-center py-4">{error}</p>}
+
 
       {!isGenerating && !error && filteredRecommendations.length === 0 && recommendations.length > 0 && (
          <Card className="text-center py-12">
@@ -230,13 +245,13 @@ export function JobRecommendationsClient() {
             <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Matching Recommendations</h3>
             <p className="text-muted-foreground">
-              Try adjusting your filters.
+              Try adjusting your filters or click "Refresh Recommendations".
             </p>
           </CardContent>
         </Card>
       )}
       
-      {!isGenerating && !error && recommendations.length === 0 && !isLoading && (
+      {!isGenerating && !error && recommendations.length === 0 && !isLoadingInitial && (
          <Card className="text-center py-12">
           <CardContent>
             <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -249,7 +264,7 @@ export function JobRecommendationsClient() {
       )}
 
 
-      {!isLoading && !isGenerating && filteredRecommendations.length > 0 && (
+      {!isLoadingInitial && !isGenerating && filteredRecommendations.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredRecommendations.map((rec) => (
             <RecommendedJobCard key={rec.jobId} job={rec} />

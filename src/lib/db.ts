@@ -23,13 +23,13 @@ export async function initializeDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      password TEXT, -- Added for login, SHOULD BE HASHED IN PRODUCTION
-      role TEXT NOT NULL DEFAULT 'student', -- Added for user roles
+      password TEXT, 
+      role TEXT NOT NULL DEFAULT 'student', 
       studentId TEXT UNIQUE,
       major TEXT,
       graduationYear INTEGER,
       gpa REAL,
-      skills TEXT, -- JSON string for array
+      skills TEXT, 
       preferences TEXT,
       resumeUrl TEXT,
       profilePictureUrl TEXT
@@ -48,11 +48,11 @@ export async function initializeDb() {
       title TEXT NOT NULL,
       companyId INTEGER NOT NULL,
       description TEXT NOT NULL,
-      requiredSkills TEXT, -- JSON string for array
+      requiredSkills TEXT, 
       requiredGpa REAL,
       location TEXT,
       postedDate TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'open', -- 'open' or 'closed'
+      status TEXT NOT NULL DEFAULT 'open', 
       FOREIGN KEY (companyId) REFERENCES companies(id)
     );
 
@@ -60,7 +60,7 @@ export async function initializeDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       studentId INTEGER NOT NULL,
       jobId INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'applied', -- 'applied', 'shortlisted', 'interviewing', 'offered', 'rejected', 'accepted'
+      status TEXT NOT NULL DEFAULT 'applied', 
       appliedDate TEXT NOT NULL,
       notes TEXT,
       FOREIGN KEY (studentId) REFERENCES students(id),
@@ -68,13 +68,14 @@ export async function initializeDb() {
     );
   `);
 
-  // Seed data if tables are empty
   await seedData(dbInstance);
 }
 
 async function seedData(dbInstance: Database) {
-  const userCount = await dbInstance.get('SELECT COUNT(*) as count FROM students');
-  if (userCount && userCount.count === 0) {
+  const userCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM students');
+  const userCount = userCountResult?.count || 0;
+
+  if (userCount === 0) {
     // Seed Admin User
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -104,10 +105,25 @@ async function seedData(dbInstance: Database) {
       JSON.stringify(["Python", "Django", "JavaScript", "React", "DevOps"]),
       "https://placehold.co/100x100.png?text=BB"
     );
+
+    // Seed Company Representative User
+     await dbInstance.run(
+      "INSERT INTO students (name, email, password, role, studentId, preferences, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "Company Rep", "company@example.com", "companypassword", "company", "COMPREP001", 
+      "Representing Tech Solutions Inc.", "https://placehold.co/150x150.png?text=CR"
+    );
+
+    // Seed College Staff User
+    await dbInstance.run(
+      "INSERT INTO students (name, email, password, role, studentId, major, preferences, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "College Staff", "college@example.com", "collegepassword", "college", "COLLSTAFF001", 
+      "Placement Office", "Manages college placement activities.", "https://placehold.co/150x150.png?text=CS"
+    );
   }
 
-  const companyCount = await dbInstance.get('SELECT COUNT(*) as count FROM companies');
-  if (companyCount && companyCount.count === 0) {
+  const companyCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM companies');
+  const companyCount = companyCountResult?.count || 0;
+  if (companyCount === 0) {
     await dbInstance.run(
       "INSERT INTO companies (name, description, website, logoUrl) VALUES (?, ?, ?, ?)",
       "Tech Solutions Inc.", "Leading provider of innovative tech solutions.", "https://techsolutions.example.com", "https://placehold.co/100x100.png?text=TS"
@@ -130,8 +146,10 @@ async function seedData(dbInstance: Database) {
     );
   }
 
-  const jobCount = await dbInstance.get('SELECT COUNT(*) as count FROM jobs');
-  if (jobCount && jobCount.count === 0) {
+  const jobCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM jobs');
+  const jobCount = jobCountResult?.count || 0;
+
+  if (jobCount === 0) {
     const company1 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'WebWorks');
     const company2 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'ServerSide Co');
     const company3 = await dbInstance.get('SELECT id FROM companies WHERE name = ?', 'Data Insights');
@@ -178,5 +196,4 @@ async function seedData(dbInstance: Database) {
   console.log("Database initialized and seeded if necessary.");
 }
 
-// Call initializeDb on module load (or call it from a global setup file)
 initializeDb().catch(console.error);
