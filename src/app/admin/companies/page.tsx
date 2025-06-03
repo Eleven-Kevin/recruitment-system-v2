@@ -68,22 +68,22 @@ export default function AdminCompaniesPage() {
             <p className="mt-1 text-sm text-muted-foreground">Registered companies will appear here.</p>
         </div>
       ) : (
-        <div className="rounded-md border bg-card text-card-foreground shadow">
+        <div className="rounded-md border bg-card text-card-foreground shadow overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Website</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="min-w-[200px]">Name</TableHead>
+                <TableHead className="min-w-[250px]">Description</TableHead>
+                <TableHead className="min-w-[200px]">Website</TableHead>
+                <TableHead className="text-right min-w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {companies.map((company) => (
                 <TableRow key={company.id}>
-                  <TableCell className="font-medium">{company.name}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs max-w-sm truncate">{company.description || "N/A"}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium max-w-[200px] truncate">{company.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs max-w-[250px] truncate">{company.description || "N/A"}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">
                     {company.website ? (
                       <Link href={company.website} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline flex items-center text-sm">
                         Visit <ExternalLink className="h-3 w-3 ml-1" />

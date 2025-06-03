@@ -120,25 +120,25 @@ export default function AdminStudentsPage() {
             <p className="mt-1 text-sm text-muted-foreground">Get started by adding a new student.</p>
         </div>
       ) : (
-        <div className="rounded-md border bg-card text-card-foreground shadow">
+        <div className="rounded-md border bg-card text-card-foreground shadow overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Student ID</TableHead>
-                <TableHead>Major</TableHead>
-                <TableHead>GPA</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="min-w-[150px]">Name</TableHead>
+                <TableHead className="min-w-[200px]">Email</TableHead>
+                <TableHead className="min-w-[100px]">Student ID</TableHead>
+                <TableHead className="min-w-[150px]">Major</TableHead>
+                <TableHead className="min-w-[60px]">GPA</TableHead>
+                <TableHead className="text-right min-w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {students.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.studentId || "N/A"}</TableCell>
-                  <TableCell>{student.major || "N/A"}</TableCell>
+                  <TableCell className="font-medium max-w-[150px] truncate">{student.name}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{student.email}</TableCell>
+                  <TableCell className="max-w-[100px] truncate">{student.studentId || "N/A"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{student.major || "N/A"}</TableCell>
                   <TableCell>{student.gpa?.toFixed(2) || "N/A"}</TableCell>
                   <TableCell className="text-right">
                     <Button

@@ -65,24 +65,24 @@ export default function AdminJobsPage() {
             <p className="mt-1 text-sm text-muted-foreground">Job postings will appear here.</p>
         </div>
       ) : (
-        <div className="rounded-md border bg-card text-card-foreground shadow">
+        <div className="rounded-md border bg-card text-card-foreground shadow overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Posted Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="min-w-[250px]">Title</TableHead>
+                <TableHead className="min-w-[200px]">Company</TableHead>
+                <TableHead className="min-w-[150px]">Location</TableHead>
+                <TableHead className="min-w-[80px]">Status</TableHead>
+                <TableHead className="min-w-[120px]">Posted Date</TableHead>
+                <TableHead className="text-right min-w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {jobs.map((job) => (
                 <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.title}</TableCell>
-                  <TableCell>{job.companyName || "N/A"}</TableCell>
-                  <TableCell>{job.location || "N/A"}</TableCell>
+                  <TableCell className="font-medium max-w-[250px] truncate">{job.title}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{job.companyName || "N/A"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{job.location || "N/A"}</TableCell>
                   <TableCell>
                     <Badge variant={job.status === 'open' ? 'secondary' : 'outline'} className="capitalize">
                       {job.status}
