@@ -1,45 +1,44 @@
-import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Users, Building, Briefcase, FileText, BarChart3, BookUser, Brain, Search, Send, User } from 'lucide-react';
+
+import type * as LucideIconTypes from 'lucide-react'; // For type-checking icon names
 
 export type NavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  iconName: keyof typeof LucideIconTypes; // Changed from 'icon: LucideIcon'
   matchExact?: boolean;
   subItems?: NavItem[];
 };
 
 export const studentNavItems: NavItem[] = [
-  { href: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchExact: true },
-  { href: '/student/profile', label: 'My Profile', icon: User },
-  { href: '/student/job-recommendations', label: 'Job Recommendations', icon: Brain },
-  { href: '/student/applications', label: 'My Applications', icon: FileText },
+  { href: '/student/dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', matchExact: true },
+  { href: '/student/profile', label: 'My Profile', iconName: 'User' },
+  { href: '/student/job-recommendations', label: 'Job Recommendations', iconName: 'Brain' },
+  { href: '/student/applications', label: 'My Applications', iconName: 'FileText' },
 ];
 
 export const adminNavItems: NavItem[] = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchExact: true },
-  { href: '/admin/students', label: 'Manage Students', icon: Users },
-  { href: '/admin/companies', label: 'Manage Companies', icon: Building },
-  { href: '/admin/jobs', label: 'Manage Jobs', icon: Briefcase },
-  { href: '/admin/schedules', label: 'Recruitment Schedules', icon: BarChart3 },
-  { href: '/admin/resume-ranking', label: 'Resume Ranking', icon: Search },
+  { href: '/admin/dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', matchExact: true },
+  { href: '/admin/students', label: 'Manage Students', iconName: 'Users' },
+  { href: '/admin/companies', label: 'Manage Companies', iconName: 'Building' },
+  { href: '/admin/jobs', label: 'Manage Jobs', iconName: 'Briefcase' },
+  { href: '/admin/schedules', label: 'Recruitment Schedules', iconName: 'BarChart3' },
+  { href: '/admin/resume-ranking', label: 'Resume Ranking', iconName: 'Search' },
 ];
 
 export const companyNavItems: NavItem[] = [
-  { href: '/company/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchExact: true },
-  { href: '/company/job-postings', label: 'Job Postings', icon: Send },
-  // Applicants will be nested or accessed from job postings list
-  { href: '/company/interviews', label: 'Interview Schedules', icon: BookUser },
+  { href: '/company/dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', matchExact: true },
+  { href: '/company/job-postings', label: 'Job Postings', iconName: 'Send' },
+  { href: '/company/interviews', label: 'Interview Schedules', iconName: 'BookUser' },
 ];
 
 export const collegeNavItems: NavItem[] = [
-  { href: '/college/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchExact: true },
-  { href: '/college/students/all', label: 'Student Details', icon: Users }, // Default to 'all' branch or make dynamic
-  { href: '/college/statistics', label: 'Recruitment Stats', icon: BarChart3 },
+  { href: '/college/dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', matchExact: true },
+  { href: '/college/students/all', label: 'Student Details', iconName: 'Users' },
+  { href: '/college/statistics', label: 'Recruitment Stats', iconName: 'BarChart3' },
 ];
 
 export const commonNavItems: NavItem[] = [
-   { href: '/common/notifications', label: 'Notifications', icon: FileText },
+   { href: '/common/notifications', label: 'Notifications', iconName: 'FileText' },
 ];
 
 export const getNavItemsByRole = (role: string | null): NavItem[] => {
@@ -52,7 +51,7 @@ export const getNavItemsByRole = (role: string | null): NavItem[] => {
       return companyNavItems;
     case 'college':
       return collegeNavItems;
-    default: // For common pages like notifications, if accessed through a shared layout
-      return commonNavItems; 
+    default:
+      return commonNavItems;
   }
 };

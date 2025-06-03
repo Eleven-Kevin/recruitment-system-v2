@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { Button } from '../ui/button';
+import * as LucideIcons from 'lucide-react'; // Import all icons
 
 interface SidebarNavProps {
   items: NavItem[];
@@ -27,18 +28,19 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
   return (
     <nav className={cn('flex flex-col gap-1 px-2 py-4', className)}>
       {items.map((item, index) => {
-        const Icon = item.icon;
+        // Dynamically get the icon component
+        const Icon = item.iconName ? LucideIcons[item.iconName as keyof typeof LucideIcons] : LucideIcons.HelpCircle;
         const isActive = item.matchExact ? pathname === item.href : pathname.startsWith(item.href);
 
         if (item.subItems && item.subItems.length > 0) {
           return (
             <Accordion type="single" collapsible className="w-full" key={index}>
               <AccordionItem value={item.label} className="border-none">
-                <AccordionTrigger 
+                <AccordionTrigger
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     isActive && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90",
-                    " [&[data-state=open]>svg:last-child]:rotate-0" // Keep chevron as is
+                    " [&[data-state=open]>svg:last-child]:rotate-0"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -48,7 +50,7 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
                 </AccordionTrigger>
                 <AccordionContent className="ml-4 mt-1 border-l border-sidebar-border pl-4">
                   {item.subItems.map((subItem) => {
-                    const SubIcon = subItem.icon;
+                    const SubIcon = subItem.iconName ? LucideIcons[subItem.iconName as keyof typeof LucideIcons] : LucideIcons.HelpCircle;
                     const isSubActive = subItem.matchExact ? pathname === subItem.href : pathname.startsWith(subItem.href);
                     return (
                       <Link
