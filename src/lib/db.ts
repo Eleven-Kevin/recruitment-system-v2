@@ -23,6 +23,8 @@ export async function initializeDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
+      password TEXT, -- Added for login, SHOULD BE HASHED IN PRODUCTION
+      role TEXT NOT NULL DEFAULT 'student', -- Added for user roles
       studentId TEXT UNIQUE,
       major TEXT,
       graduationYear INTEGER,
@@ -74,21 +76,21 @@ async function seedData(dbInstance: Database) {
   const studentCount = await dbInstance.get('SELECT COUNT(*) as count FROM students');
   if (studentCount && studentCount.count === 0) {
     await dbInstance.run(
-      "INSERT INTO students (name, email, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Alex Johnson", "alex.johnson@example.com", "S1001", "Computer Science", 2025, 3.75, 
-      JSON.stringify(["JavaScript", "React", "Node.js", "Python"]), 
-      "Interested in full-stack development roles in tech companies. Open to remote work.", 
+      "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "Alex Johnson", "alex.johnson@example.com", "password123", "student", "S1001", "Computer Science", 2025, 3.75,
+      JSON.stringify(["JavaScript", "React", "Node.js", "Python"]),
+      "Interested in full-stack development roles in tech companies. Open to remote work.",
       "https://example.com/resumes/alex_johnson.pdf", "https://placehold.co/150x150.png?text=AJ"
     );
      await dbInstance.run(
-      "INSERT INTO students (name, email, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      "Alice Wonderland", "alice@example.com", "S1002", "Computer Science", 2024, 3.9,
+      "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "Alice Wonderland", "alice@example.com", "password123", "student", "S1002", "Computer Science", 2024, 3.9,
       JSON.stringify(["Java", "Spring Boot", "Microservices", "SQL", "Agile"]),
       "https://placehold.co/100x100.png?text=AW"
     );
     await dbInstance.run(
-      "INSERT INTO students (name, email, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      "Bob The Builder", "bob@example.com", "S1003", "Software Engineering", 2025, 3.5,
+      "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "Bob The Builder", "bob@example.com", "password123", "student", "S1003", "Software Engineering", 2025, 3.5,
       JSON.stringify(["Python", "Django", "JavaScript", "React", "DevOps"]),
       "https://placehold.co/100x100.png?text=BB"
     );

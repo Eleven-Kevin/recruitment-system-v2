@@ -1,7 +1,10 @@
+
 export interface Student {
   id: number; // Changed to number for DB primary key
   name: string;
   email: string;
+  password?: string; // For creation, SHOULD BE HASHED
+  role?: 'student' | 'admin' | 'company' | 'college'; // User role
   studentId?: string;
   major?: string;
   graduationYear?: number;
@@ -37,9 +40,9 @@ export interface Application {
   id: number; // Changed to number for DB primary key
   studentId: number; // Foreign key to Student
   jobId: number; // Foreign key to Job
-  studentName?: string; 
-  jobTitle?: string; 
-  companyName?: string; 
+  studentName?: string;
+  jobTitle?: string;
+  companyName?: string;
   status: 'applied' | 'shortlisted' | 'interviewing' | 'offered' | 'rejected' | 'accepted';
   appliedDate: string; // ISO date string
   notes?: string;
@@ -51,24 +54,24 @@ export interface Interview {
   companyId: number;
   studentId: number;
   scheduledTime: string; // ISO date string
-  location?: string; 
+  location?: string;
   notes?: string;
   feedback?: string;
 }
 
 export interface Notification {
   id: string; // Keeping string if not directly from these DB tables or has external source
-  userId: string; 
+  userId: string;
   message: string;
   type: 'application_status' | 'interview_schedule' | 'company_update' | 'new_job' | 'general';
   isRead: boolean;
   createdAt: string; // ISO date string
-  link?: string; 
+  link?: string;
 }
 
 // For AI flows
 export type RankedResume = {
-  resume: string; 
+  resume: string;
   rank: number;
   reason: string;
 };
