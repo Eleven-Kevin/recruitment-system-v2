@@ -19,8 +19,14 @@ export async function POST(request: NextRequest) {
       email
     );
 
-    if (!user || !user.password) {
+    if (!user) { // Check if user exists first
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
+    }
+    // If user exists, then check for the password
+    if (!user.password) { 
+      // This case implies an issue with the user's account data (e.g., password not set)
+      console.error(`User with email ${email} found, but no password is set in the database.`);
+      return NextResponse.json({ error: 'Invalid email or password. Account configuration issue.' }, { status: 401 });
     }
 
     const isPasswordValid = verifyPseudoHashedPassword(password, user.password);
