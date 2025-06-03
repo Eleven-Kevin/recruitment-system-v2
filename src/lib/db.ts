@@ -73,8 +73,18 @@ export async function initializeDb() {
 }
 
 async function seedData(dbInstance: Database) {
-  const studentCount = await dbInstance.get('SELECT COUNT(*) as count FROM students');
-  if (studentCount && studentCount.count === 0) {
+  const userCount = await dbInstance.get('SELECT COUNT(*) as count FROM students');
+  if (userCount && userCount.count === 0) {
+    // Seed Admin User
+    await dbInstance.run(
+      "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "Admin User", "admin@example.com", "adminpassword", "admin", "ADMIN001", "Platform Administration", null, null,
+      JSON.stringify(["User Management", "System Configuration"]),
+      "Oversees platform operations.",
+      null, "https://placehold.co/150x150.png?text=AU"
+    );
+
+    // Seed Student Users
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       "Alex Johnson", "alex.johnson@example.com", "password123", "student", "S1001", "Computer Science", 2025, 3.75,
