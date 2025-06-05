@@ -1,7 +1,7 @@
 
 import { PageHeader } from "@/components/core/page-header";
 import type { Notification } from "@/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BellRing, Check, Trash2, Info, AlertTriangle, Briefcase } from "lucide-react";
