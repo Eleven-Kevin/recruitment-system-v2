@@ -7,7 +7,8 @@ import type { Company } from "@/types";
 // Fetches all companies, useful if an admin is creating a job for any company
 // Or if a company user needs to select (though ideally their companyId is implicit)
 async function getAllCompanies(): Promise<Company[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/companies`, { cache: 'no-store' });
+  // Use relative path for server-side fetch
+  const res = await fetch(`/api/admin/companies`, { cache: 'no-store' });
   if (!res.ok) {
     console.error("Failed to fetch companies", res.status, await res.text());
     // Fallback: create a placeholder company if fetching fails, so the form is usable.

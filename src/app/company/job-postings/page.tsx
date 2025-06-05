@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 
 async function getCompanyJobs(): Promise<Job[]> {
   // In a real app, this would filter by the logged-in company's ID.
-  // For now, fetching all jobs.
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/jobs`, { cache: 'no-store' });
+  // For now, fetching all jobs using a relative path.
+  // TODO: When company login is fully implemented, pass companyId as query param
+  const res = await fetch(`/api/jobs`, { cache: 'no-store' });
   if (!res.ok) {
     console.error("Failed to fetch jobs", res.status, await res.text());
     return [];
