@@ -24,6 +24,10 @@ export interface Company {
   description?: string;
   website?: string;
   logoUrl?: string;
+  representativeUser?: { // For returning credentials to admin
+    email: string;
+    password?: string; // Plain password for display, PROTOTYPE ONLY
+  }
 }
 
 export interface Job {

@@ -42,13 +42,14 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
     const body = await request.json();
-    const { name, email, password, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl, role = 'student' } = body as Partial<Student>;
+    // Capture the plain password for returning in response (admin context only)
+    const { name, email, password: plainPassword, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl, role = 'student' } = body as Partial<Student> & { password?: string };
 
-    if (!name || !email || !password) {
+    if (!name || !email || !plainPassword) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }
 
-    const hashedPassword = pseudoHashPassword(password);
+    const hashedPassword = pseudoHashPassword(plainPassword);
     const skillsJson = skills && Array.isArray(skills) ? JSON.stringify(skills) : null;
 
     const result = await db.run(
@@ -67,12 +68,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (newStudent && newStudent.skills && typeof newStudent.skills === 'string') {
-        newStudent.skills = JSON.parse(newStudent.skills);
+        try {
+          newStudent.skills = JSON.parse(newStudent.skills);
+        } catch {
+          newStudent.skills = [];
+        }
     } else if (newStudent && !newStudent.skills) {
         newStudent.skills = [];
     }
 
-    return NextResponse.json(newStudent, { status: 201 });
+    // Return student details along with email and plain password for admin to note
+    return NextResponse.json({
+      ...newStudent,
+      plainPassword // PROTOTYPE ONLY: for admin to see the password they set
+    }, { status: 201 });
   } catch (e: unknown) {
     let errorMessage = 'Failed to create student due to an internal error.';
     if (e instanceof Error) {

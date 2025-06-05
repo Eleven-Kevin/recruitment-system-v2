@@ -20,89 +20,62 @@ import { useToast } from "@/hooks/use-toast";
 import type { Company } from "@/types";
 import { DialogClose } from "@/components/ui/dialog";
 
-const addCompanySchema = z.object({
+const editCompanySchema = z.object({
   name: z.string().min(2, "Company name must be at least 2 characters."),
   description: z.string().optional(),
   website: z.string().url({ message: "Please enter a valid URL for the website." }).optional().or(z.literal('')),
   logoUrl: z.string().url({ message: "Please enter a valid URL for the logo." }).optional().or(z.literal('')),
 });
 
-type AddCompanyFormValues = z.infer<typeof addCompanySchema>;
+type EditCompanyFormValues = z.infer<typeof editCompanySchema>;
 
-interface AddCompanyFormProps {
-  onSuccess?: (data: Company) => void; // Data might need to include user credentials now
+interface EditCompanyFormProps {
+  company: Company;
+  onSuccess?: (data: Company) => void;
 }
 
-export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
+export function EditCompanyForm({ company, onSuccess }: EditCompanyFormProps) {
   const { toast } = useToast();
 
-  const form = useForm<AddCompanyFormValues>({
-    resolver: zodResolver(addCompanySchema),
+  const form = useForm<EditCompanyFormValues>({
+    resolver: zodResolver(editCompanySchema),
     defaultValues: {
-      name: "",
-      description: "",
-      website: "",
-      logoUrl: "",
+      name: company.name || "",
+      description: company.description || "",
+      website: company.website || "",
+      logoUrl: company.logoUrl || "",
     },
   });
 
-  async function onSubmit(data: AddCompanyFormValues) {
+  async function onSubmit(data: EditCompanyFormValues) {
     try {
-      const response = await fetch('/api/admin/companies', {
-        method: 'POST',
+      const response = await fetch(`/api/admin/companies/${company.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add company');
+        throw new Error(errorData.error || 'Failed to update company');
       }
       
-      // Expecting response to include company details and representativeUser credentials
-      const responseData = await response.json();
-      const newCompany: Company = {
-        id: responseData.id,
-        name: responseData.name,
-        description: responseData.description,
-        website: responseData.website,
-        logoUrl: responseData.logoUrl,
-      };
-      const repUser = responseData.representativeUser;
-
-      let toastDescription = `Company "${newCompany.name}" has been successfully registered.`;
-      if (repUser && repUser.email && repUser.password) {
-        toastDescription += `\nRepresentative User Credentials:\nEmail: ${repUser.email}\nPassword: ${repUser.password}`;
-      }
-
+      const updatedCompany: Company = await response.json();
 
       toast({
-        title: "Company & User Added",
-        description: (
-            <div className="whitespace-pre-wrap">
-                <p>Company &quot;{newCompany.name}&quot; successfully registered.</p>
-                {repUser && repUser.email && repUser.password && (
-                    <>
-                        <p className="mt-2 font-semibold">Representative User Credentials:</p>
-                        <p>Email: {repUser.email}</p>
-                        <p>Password: {repUser.password} (Share this securely)</p>
-                    </>
-                )}
-            </div>
-        ),
-        duration: 15000, // Longer duration for credentials
+        title: "Company Updated",
+        description: `Company "${updatedCompany.name}" has been successfully updated.`,
       });
       
-      form.reset();
       if (onSuccess) {
-        onSuccess(newCompany); // Pass new company data back
+        onSuccess(updatedCompany);
       }
 
     } catch (error) {
-        console.error('Failed to add company and user:', error);
+        console.error('Failed to update company:', error);
         toast({
             variant: "destructive",
-            title: "Failed to Add Company & User",
+            title: "Failed to Update Company",
             description: (error as Error).message || "An unexpected error occurred.",
         });
     }
@@ -169,7 +142,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
                 <Button type="button" variant="outline">Cancel</Button>
             </DialogClose>
             <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Adding..." : "Add Company & User"}
+              {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
         </div>
       </form>

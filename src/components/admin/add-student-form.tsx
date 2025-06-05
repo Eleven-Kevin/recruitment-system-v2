@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Student } from "@/types";
-import { DialogClose } from "@/components/ui/dialog"; // Added DialogClose
+import { DialogClose } from "@/components/ui/dialog";
 
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -37,7 +37,7 @@ const addStudentSchema = z.object({
 type AddStudentFormValues = z.infer<typeof addStudentSchema>;
 
 interface AddStudentFormProps {
-  onSuccess?: (data: Student) => void;
+  onSuccess?: (data: Student & { plainPassword?: string }) => void; // Student now includes plainPassword for display
 }
 
 export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
@@ -65,7 +65,7 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
       const response = await fetch('/api/admin/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...data, role: 'student'}),
+        body: JSON.stringify({...data, role: 'student'}), // Data includes the plain password
       });
 
       if (!response.ok) {
@@ -73,16 +73,26 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
         throw new Error(errorData.error || 'Failed to add student');
       }
       
-      const newStudent: Student = await response.json();
+      const responseData = await response.json(); // API now returns student + plainPassword
+      const newStudent: Student & { plainPassword?: string } = responseData;
+
 
       toast({
         title: "Student Added",
-        description: `${newStudent.name} has been successfully added.`,
+        description: (
+            <div className="whitespace-pre-wrap">
+                <p>Student &quot;{newStudent.name}&quot; successfully created.</p>
+                <p className="mt-2 font-semibold">Login Credentials:</p>
+                <p>Email: {newStudent.email}</p>
+                <p>Password: {newStudent.plainPassword} (Share this securely)</p>
+            </div>
+        ),
+        duration: 15000, // Longer duration for credentials
       });
       
-      form.reset(); // Reset form after successful submission
+      form.reset(); 
       if (onSuccess) {
-        onSuccess(newStudent); // This will trigger dialog close and list refresh
+        onSuccess(newStudent); 
       }
 
     } catch (error) {
@@ -135,7 +145,7 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
                 <FormControl>
                   <Input type="password" placeholder="Enter a secure password" {...field} />
                 </FormControl>
-                <FormDescription>Min 6 characters. User will use this to log in.</FormDescription>
+                <FormDescription>Min 6 characters. Student will use this to log in.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
