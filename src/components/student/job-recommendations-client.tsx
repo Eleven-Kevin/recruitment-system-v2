@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RecommendedJobCard } from "./recommended-job-card";
-import type { Job, Student, RecommendedJob as UIRecRecommendedJob } from "@/types";
+import type { Job, Student, RecommendedJob as UIRecRecommendedJob, Application } from "@/types";
 import { useState, useEffect } from "react";
-import { Loader2, Filter, Search } from "lucide-react";
+import { Loader2, Filter, Search as SearchIcon } from "lucide-react"; // Renamed Search to SearchIcon
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
@@ -33,6 +33,21 @@ async function fetchStudentDataById(studentId: string | number): Promise<Student
   }
 }
 
+async function fetchStudentApplications(studentId: string | number): Promise<Application[]> {
+  try {
+    const res = await fetch(`/api/students/${studentId}/applications`);
+    if (!res.ok) {
+      console.error("Failed to fetch student applications:", res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching student applications:", error);
+    return [];
+  }
+}
+
+
 async function fetchAllJobs(): Promise<Job[]> {
   try {
     const res = await fetch('/api/jobs');
@@ -54,6 +69,7 @@ async function fetchAllJobs(): Promise<Job[]> {
 
 export function JobRecommendationsClient() {
   const [student, setStudent] = useState<Student | null>(null);
+  const [studentApplications, setStudentApplications] = useState<Application[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [recommendations, setRecommendations] = useState<UIRecRecommendedJob[]>([]);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
@@ -72,21 +88,28 @@ export function JobRecommendationsClient() {
       setLoadingProgress(10);
 
       let fetchedStudent: Student | null = null;
+      let fetchedApplications: Application[] = [];
+
       if (typeof window !== 'undefined') {
           const studentId = localStorage.getItem('userId');
           if (studentId) {
             fetchedStudent = await fetchStudentDataById(studentId);
+            setLoadingProgress(30);
+            if (fetchedStudent) {
+              fetchedApplications = await fetchStudentApplications(studentId);
+            }
           } else {
             setError("Please log in to get job recommendations.");
           }
       }
-      setLoadingProgress(40);
+      setLoadingProgress(50);
       const fetchedJobs = await fetchAllJobs();
       setLoadingProgress(70);
 
       if (fetchedStudent) setStudent(fetchedStudent);
       else if (!error) setError("Failed to load student profile for recommendations.");
       
+      setStudentApplications(fetchedApplications);
       setAllJobs(fetchedJobs);
       if (fetchedJobs.length === 0 && !error) setError("No jobs available to recommend from.");
       
@@ -94,7 +117,7 @@ export function JobRecommendationsClient() {
       setIsLoadingInitial(false);
 
       if (fetchedStudent && fetchedJobs.length > 0) {
-        await generateRecommendations(fetchedStudent, fetchedJobs);
+        await generateRecommendations(fetchedStudent, fetchedJobs, fetchedApplications);
       }
     }
     loadInitialData();
@@ -102,9 +125,14 @@ export function JobRecommendationsClient() {
   }, []);
 
 
-  const generateRecommendations = async (currentStudentParam?: Student | null, currentJobsParam?: Job[] | null) => {
+  const generateRecommendations = async (
+    currentStudentParam?: Student | null, 
+    currentJobsParam?: Job[] | null,
+    currentAppsParam?: Application[] | null
+  ) => {
     const studToUse = currentStudentParam || student;
     const jobsToUse = currentJobsParam || allJobs;
+    const appsToUse = currentAppsParam || studentApplications;
 
     if (!studToUse) {
         setError("Student profile not loaded. Please log in.");
@@ -120,7 +148,7 @@ export function JobRecommendationsClient() {
 
     setIsGenerating(true);
     setError(null);
-    setRecommendations([]); // Clear previous recommendations
+    setRecommendations([]); 
     setLoadingProgress(0);
 
     const progressInterval = setInterval(() => {
@@ -131,7 +159,7 @@ export function JobRecommendationsClient() {
       const input: RecommendJobsInput = {
         studentSkills: studToUse.skills || [],
         studentGPA: studToUse.gpa || 0,
-        pastApplications: (studToUse as any).pastApplications || [], 
+        pastApplications: appsToUse.map(app => app.jobId.toString()), 
         allJobs: jobsToUse.map(job => ({
           jobId: job.id.toString(), 
           jobTitle: job.title,
@@ -151,8 +179,10 @@ export function JobRecommendationsClient() {
           jobTitle: jobDetails?.title,
           companyName: jobDetails?.companyName,
           description: jobDetails?.description,
+          location: jobDetails?.location,
+          postedDate: jobDetails?.postedDate,
         };
-      }).sort((a, b) => b.relevanceScore - a.relevanceScore); // Sort by relevance
+      }).sort((a, b) => b.relevanceScore - a.relevanceScore); 
       
       setRecommendations(uiRecommendations);
       toast({ title: "Recommendations Generated", description: `Found ${uiRecommendations.length} tailored job recommendations.` });
@@ -185,7 +215,7 @@ export function JobRecommendationsClient() {
     );
   }
   
-  if (error && !isGenerating) { // Show general error if not specifically loading recommendations
+  if (error && !isGenerating) { 
     return <p className="text-destructive text-center py-4">{error}</p>;
   }
 
@@ -201,7 +231,7 @@ export function JobRecommendationsClient() {
           <div className="md:col-span-2">
             <Label htmlFor="searchTerm">Search (Title, Company)</Label>
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 id="searchTerm" 
                 placeholder="e.g., Software Engineer, WebWorks" 
@@ -223,7 +253,7 @@ export function JobRecommendationsClient() {
             />
           </div>
           <Button onClick={() => generateRecommendations()} disabled={isGenerating || !student || allJobs.length === 0} className="md:col-span-3 bg-accent hover:bg-accent/90 text-accent-foreground">
-            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchIcon className="mr-2 h-4 w-4" />}
             {isGenerating ? "Generating..." : "Refresh Recommendations"}
           </Button>
         </CardContent>
@@ -242,7 +272,7 @@ export function JobRecommendationsClient() {
       {!isGenerating && !error && filteredRecommendations.length === 0 && recommendations.length > 0 && (
          <Card className="text-center py-12">
           <CardContent>
-            <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <SearchIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Matching Recommendations</h3>
             <p className="text-muted-foreground">
               Try adjusting your filters or click "Refresh Recommendations".
@@ -254,7 +284,7 @@ export function JobRecommendationsClient() {
       {!isGenerating && !error && recommendations.length === 0 && !isLoadingInitial && (
          <Card className="text-center py-12">
           <CardContent>
-            <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <SearchIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Recommendations Generated Yet</h3>
             <p className="text-muted-foreground">
               Click "Refresh Recommendations" to get started. Ensure your profile skills and GPA are up to date for best results.
