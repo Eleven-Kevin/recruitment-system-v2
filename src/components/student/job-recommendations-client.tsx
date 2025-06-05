@@ -158,14 +158,14 @@ export function JobRecommendationsClient() {
     try {
       const input: RecommendJobsInput = {
         studentSkills: studToUse.skills || [],
-        studentGPA: studToUse.gpa || 0,
+        studentGPA: studToUse.gpa || 0, // GPA on 0-10 scale
         pastApplications: appsToUse.map(app => app.jobId.toString()), 
         allJobs: jobsToUse.map(job => ({
           jobId: job.id.toString(), 
           jobTitle: job.title,
           jobDescription: job.description,
           requiredSkills: job.requiredSkills || [],
-          requiredGPA: job.requiredGpa || 0,
+          requiredGPA: job.requiredGpa || 0, // GPA on 0-10 scale
         })),
       };
 
@@ -181,6 +181,7 @@ export function JobRecommendationsClient() {
           description: jobDetails?.description,
           location: jobDetails?.location,
           postedDate: jobDetails?.postedDate,
+          requiredGpa: jobDetails?.requiredGpa, // Include requiredGpa for display
         };
       }).sort((a, b) => b.relevanceScore - a.relevanceScore); 
       
@@ -199,10 +200,9 @@ export function JobRecommendationsClient() {
 
   const filteredRecommendations = recommendations
     .filter(jobRec => {
-      const jobDetails = allJobs.find(j => j.id === jobRec.jobId);
       return (jobRec.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) || 
               jobRec.companyName?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-             (minGpaFilter === undefined || (jobDetails?.requiredGpa || 0) >= minGpaFilter);
+             (minGpaFilter === undefined || (jobRec?.requiredGpa || 0) >= minGpaFilter);
     });
 
   if (isLoadingInitial) {
@@ -225,7 +225,7 @@ export function JobRecommendationsClient() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Filter className="h-5 w-5 text-accent" /> Filter Recommendations</CardTitle>
-          <CardDescription>Refine your job search based on keywords or minimum GPA.</CardDescription>
+          <CardDescription>Refine your job search based on keywords or minimum required GPA (0-10 scale).</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="md:col-span-2">
@@ -242,12 +242,14 @@ export function JobRecommendationsClient() {
             </div>
           </div>
           <div>
-            <Label htmlFor="minGpaFilter">Minimum Required GPA</Label>
+            <Label htmlFor="minGpaFilter">Min. Required GPA (0-10)</Label>
             <Input 
               id="minGpaFilter" 
               type="number" 
               step="0.1" 
-              placeholder="e.g., 3.0"
+              min="0"
+              max="10"
+              placeholder="e.g., 7.5"
               value={minGpaFilter === undefined ? '' : minGpaFilter}
               onChange={(e) => setMinGpaFilter(e.target.value ? parseFloat(e.target.value) : undefined)}
             />
@@ -287,7 +289,7 @@ export function JobRecommendationsClient() {
             <SearchIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Recommendations Generated Yet</h3>
             <p className="text-muted-foreground">
-              Click "Refresh Recommendations" to get started. Ensure your profile skills and GPA are up to date for best results.
+              Click "Refresh Recommendations" to get started. Ensure your profile skills and GPA (0-10 scale) are up to date for best results.
             </p>
           </CardContent>
         </Card>
@@ -304,3 +306,4 @@ export function JobRecommendationsClient() {
     </div>
   );
 }
+

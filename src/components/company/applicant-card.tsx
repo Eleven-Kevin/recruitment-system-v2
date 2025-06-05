@@ -29,7 +29,7 @@ export function ApplicantCard({ student, application }: ApplicantCardProps) {
       <CardContent className="space-y-2">
         <div className="flex items-center text-sm text-muted-foreground">
           <GraduationCap className="mr-2 h-4 w-4 text-accent" />
-          GPA: {student.gpa ? student.gpa.toFixed(2) : "N/A"}
+          GPA (0-10): {student.gpa ? student.gpa.toFixed(1) : "N/A"}
         </div>
         {student.skills && student.skills.length > 0 && (
           <div>
@@ -69,3 +69,4 @@ export function ApplicantCard({ student, application }: ApplicantCardProps) {
     </Card>
   );
 }
+

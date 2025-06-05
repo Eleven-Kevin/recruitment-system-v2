@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -38,7 +37,7 @@ export default function StudentJobDetailsPage() {
         setIsLoading(true);
         setError(null);
         try {
-          const res = await fetch(`/api/jobs/${jobId}`);
+          const res = await fetch(\`/api/jobs/\${jobId}\`);
           if (!res.ok) {
             if (res.status === 404) {
               throw new Error("Job not found. It might have been removed or the link is incorrect.");
@@ -51,7 +50,7 @@ export default function StudentJobDetailsPage() {
 
           // Check if student has already applied
           if (studentId && data) {
-            const appRes = await fetch(`/api/students/${studentId}/applications`);
+            const appRes = await fetch(\`/api/students/\${studentId}/applications\`);
             if (appRes.ok) {
               const applications: Application[] = await appRes.json();
               if (applications.some(app => app.jobId === data.id)) {
@@ -83,7 +82,7 @@ export default function StudentJobDetailsPage() {
 
     setIsApplying(true);
     try {
-      const response = await fetch(`/api/students/${studentId}/applications`, {
+      const response = await fetch(\`/api/students/\${studentId}/applications\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId: job.id }),
@@ -98,7 +97,7 @@ export default function StudentJobDetailsPage() {
       setHasApplied(true);
       toast({
         title: "Application Submitted!",
-        description: `You have successfully applied for ${job.title}.`,
+        description: \`You have successfully applied for \${job.title}.\`,
         variant: "default",
       });
     } catch (e: any) {
@@ -205,8 +204,8 @@ export default function StudentJobDetailsPage() {
             <CardContent className="space-y-3">
               {job.requiredGpa && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1"><GraduationCap className="h-4 w-4"/>Min. GPA:</span>
-                  <span className="font-semibold">{job.requiredGpa.toFixed(2)}</span>
+                  <span className="text-muted-foreground flex items-center gap-1"><GraduationCap className="h-4 w-4"/>Min. GPA (0-10):</span>
+                  <span className="font-semibold">{job.requiredGpa.toFixed(1)}</span>
                 </div>
               )}
                <div className="flex items-center justify-between text-sm">

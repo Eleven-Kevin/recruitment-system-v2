@@ -8,7 +8,7 @@ export interface Student {
   studentId?: string;
   major?: string;
   graduationYear?: number;
-  gpa?: number;
+  gpa?: number; // Scale 0-10
   skills?: string[]; 
   preferences?: string;
   resumeUrl?: string;
@@ -37,7 +37,7 @@ export interface Job {
   companyName?: string; 
   description: string;
   requiredSkills?: string[]; 
-  requiredGpa?: number;
+  requiredGpa?: number; // Scale 0-10
   location?: string;
   postedDate: string; 
   status: 'open' | 'closed';
@@ -106,7 +106,8 @@ export type RecommendedJob = {
   // Add other job fields needed for display if not fetching full Job object separately
   location?: string;
   requiredSkills?: string[];
-  requiredGpa?: number;
+  requiredGpa?: number; // Scale 0-10
   status?: 'open' | 'closed';
   postedDate?: string;
 };
+

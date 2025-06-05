@@ -1,4 +1,3 @@
-
 "use client";
 import { PageHeader } from "@/components/core/page-header";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,7 @@ export default function AdminStudentsPage() {
     try {
       const response = await fetch("/api/admin/students"); // Ensure this fetches students
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(\`HTTP error! status: \${response.status}\`);
       }
       const data = await response.json();
       setStudents(data);
@@ -55,7 +54,7 @@ export default function AdminStudentsPage() {
       return;
     }
     try {
-      const response = await fetch(`/api/students/${studentId}`, {
+      const response = await fetch(\`/api/students/\${studentId}\`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -128,7 +127,7 @@ export default function AdminStudentsPage() {
                 <TableHead className="min-w-[200px]">Email</TableHead>
                 <TableHead className="min-w-[100px]">Student ID</TableHead>
                 <TableHead className="min-w-[150px]">Major</TableHead>
-                <TableHead className="min-w-[60px]">GPA</TableHead>
+                <TableHead className="min-w-[80px]">GPA (0-10)</TableHead>
                 <TableHead className="text-right min-w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -139,7 +138,7 @@ export default function AdminStudentsPage() {
                   <TableCell className="max-w-[200px] truncate">{student.email}</TableCell>
                   <TableCell className="max-w-[100px] truncate">{student.studentId || "N/A"}</TableCell>
                   <TableCell className="max-w-[150px] truncate">{student.major || "N/A"}</TableCell>
-                  <TableCell>{student.gpa?.toFixed(2) || "N/A"}</TableCell>
+                  <TableCell>{student.gpa?.toFixed(1) || "N/A"}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"

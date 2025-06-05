@@ -27,7 +27,7 @@ const addStudentSchema = z.object({
   studentId: z.string().optional(),
   major: z.string().optional(),
   graduationYear: z.coerce.number().int().positive().optional().nullable(),
-  gpa: z.coerce.number().min(0).max(4).optional().nullable(),
+  gpa: z.coerce.number().min(0).max(10, "GPA must be between 0 and 10.").optional().nullable(),
   skills: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
   preferences: z.string().optional(),
   resumeUrl: z.string().url().optional().or(z.literal('')).nullable(),
@@ -199,9 +199,9 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
             name="gpa"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>GPA (Optional)</FormLabel>
+                <FormLabel>GPA (0-10 scale) (Optional)</FormLabel>
                 <FormControl>
-                    <Input type="number" step="0.01" placeholder="e.g., 3.5" {...field} value={field.value ?? ""} />
+                    <Input type="number" step="0.1" min="0" max="10" placeholder="e.g., 8.5" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -280,3 +280,4 @@ export function AddStudentForm({ onSuccess }: AddStudentFormProps) {
     </Form>
   );
 }
+

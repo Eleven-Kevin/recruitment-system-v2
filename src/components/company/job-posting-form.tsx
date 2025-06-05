@@ -28,7 +28,7 @@ const jobPostingSchema = z.object({
   description: z.string().min(20, "Description must be at least 20 characters."),
   companyId: z.coerce.number().positive({ message: "Company is required."}),
   requiredSkills: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
-  requiredGpa: z.coerce.number().min(0).max(4).optional().nullable(),
+  requiredGpa: z.coerce.number().min(0).max(10, "GPA must be between 0 and 10.").optional().nullable(),
   location: z.string().optional(),
 });
 
@@ -269,9 +269,9 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
             name="requiredGpa"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Minimum Required GPA (Optional)</FormLabel>
+                <FormLabel>Minimum Required GPA (0-10) (Optional)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="e.g., 3.0" {...field} value={field.value ?? ""} />
+                  <Input type="number" step="0.1" min="0" max="10" placeholder="e.g., 7.5" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -300,3 +300,4 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
     </Form>
   );
 }
+

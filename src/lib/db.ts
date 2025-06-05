@@ -20,7 +20,7 @@ export async function initializeDb() {
   const dbInstance = await getDb();
 
   // Create tables if they don't exist
-  await dbInstance.exec(`
+  await dbInstance.exec(\`
     CREATE TABLE IF NOT EXISTS students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -30,7 +30,7 @@ export async function initializeDb() {
       studentId TEXT UNIQUE,
       major TEXT,
       graduationYear INTEGER,
-      gpa REAL,
+      gpa REAL, -- Scale 0-10
       skills TEXT,
       preferences TEXT,
       resumeUrl TEXT,
@@ -53,7 +53,7 @@ export async function initializeDb() {
       companyId INTEGER NOT NULL,
       description TEXT NOT NULL,
       requiredSkills TEXT,
-      requiredGpa REAL,
+      requiredGpa REAL, -- Scale 0-10
       location TEXT,
       postedDate TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'open',
@@ -83,7 +83,7 @@ export async function initializeDb() {
         FOREIGN KEY (jobId) REFERENCES jobs(id) ON DELETE SET NULL,
         FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
     );
-  `);
+  \`);
 
   // Check and add companyId column to students table if it doesn't exist (simple migration)
   try {
@@ -95,9 +95,6 @@ export async function initializeDb() {
     }
   } catch (e) {
     console.error("Error checking/altering students table for companyId:", e);
-    // If PRAGMA table_info fails, it might be because the table doesn't exist yet,
-    // which is fine as CREATE TABLE above will handle it.
-    // If ALTER TABLE fails, it's a more significant issue.
   }
 
 
@@ -174,20 +171,20 @@ async function seedData(dbInstance: Database) {
 
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, preferences, resumeUrl, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Alex Johnson", "alex.johnson@example.com", pseudoHashPassword("password123"), "student", "S1001", "Computer Science", 2025, 3.75,
+      "Alex Johnson", "alex.johnson@example.com", pseudoHashPassword("password123"), "student", "S1001", "Computer Science", 2025, 3.75 * 2.5, // 9.375
       JSON.stringify(["JavaScript", "React", "Node.js", "Python"]),
       "Interested in full-stack development roles in tech companies. Open to remote work.",
       "https://example.com/resumes/alex_johnson.pdf", "https://placehold.co/150x150.png?text=AJ"
     );
      await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Alice Wonderland", "alice@example.com", pseudoHashPassword("password123"), "student", "S1002", "Computer Science", 2024, 3.9,
+      "Alice Wonderland", "alice@example.com", pseudoHashPassword("password123"), "student", "S1002", "Computer Science", 2024, 3.9 * 2.5, // 9.75
       JSON.stringify(["Java", "Spring Boot", "Microservices", "SQL", "Agile"]),
       "https://placehold.co/100x100.png?text=AW"
     );
     await dbInstance.run(
       "INSERT INTO students (name, email, password, role, studentId, major, graduationYear, gpa, skills, profilePictureUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      "Bob The Builder", "bob@example.com", pseudoHashPassword("password123"), "student", "S1003", "Software Engineering", 2025, 3.5,
+      "Bob The Builder", "bob@example.com", pseudoHashPassword("password123"), "student", "S1003", "Software Engineering", 2025, 3.5 * 2.5, // 8.75
       JSON.stringify(["Python", "Django", "JavaScript", "React", "DevOps"]),
       "https://placehold.co/100x100.png?text=BB"
     );
@@ -225,39 +222,39 @@ async function seedData(dbInstance: Database) {
     if (webworksCompanyId) {
         const res1 = await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Frontend Developer", webworksCompanyId, "Develop modern web UIs.", JSON.stringify(["React", "TypeScript"]), 3.0, "Remote", new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Frontend Developer", webworksCompanyId, "Develop modern web UIs.", JSON.stringify(["React", "TypeScript"]), 3.0 * 2.5, "Remote", new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), "open" // 7.5
         );
         job1Id = res1.lastID;
         await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Full Stack Engineer", webworksCompanyId, "Work on both frontend and backend.", JSON.stringify(["React", "Node.js", "SQL"]), 3.3, "New York, NY", new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Full Stack Engineer", webworksCompanyId, "Work on both frontend and backend.", JSON.stringify(["React", "Node.js", "SQL"]), 3.3 * 2.5, "New York, NY", new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), "open" // 8.25
         );
     }
      if (serversideCompanyId) {
         const res2 = await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Backend Developer", serversideCompanyId, "Build robust backend systems.", JSON.stringify(["Node.js", "MongoDB"]), 3.2, "San Francisco, CA", new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Backend Developer", serversideCompanyId, "Build robust backend systems.", JSON.stringify(["Node.js", "MongoDB"]), 3.2 * 2.5, "San Francisco, CA", new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), "open" // 8.0
         );
         job2Id = res2.lastID;
         await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "DevOps Engineer", serversideCompanyId, "Manage infrastructure and deployments.", JSON.stringify(["AWS", "Docker", "Kubernetes"]), 3.0, "Remote", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "DevOps Engineer", serversideCompanyId, "Manage infrastructure and deployments.", JSON.stringify(["AWS", "Docker", "Kubernetes"]), 3.0 * 2.5, "Remote", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), "open" // 7.5
         );
     }
     if (datainsightsCompanyId) {
         await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Data Scientist", datainsightsCompanyId, "Analyze data and build models.", JSON.stringify(["Python", "R", "Machine Learning"]), 3.5, "Austin, TX", new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Data Scientist", datainsightsCompanyId, "Analyze data and build models.", JSON.stringify(["Python", "R", "Machine Learning"]), 3.5 * 2.5, "Austin, TX", new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(), "open" // 8.75
         );
          await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "AI Specialist", datainsightsCompanyId, "Research and implement AI solutions.", JSON.stringify(["Python", "TensorFlow", "NLP"]), 3.7, "Boston, MA", new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "AI Specialist", datainsightsCompanyId, "Research and implement AI solutions.", JSON.stringify(["Python", "TensorFlow", "NLP"]), 3.7 * 2.5, "Boston, MA", new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), "open" // 9.25
         );
     }
     if (techSolutionsCompanyId) {
        await dbInstance.run(
           "INSERT INTO jobs (title, companyId, description, requiredSkills, requiredGpa, location, postedDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          "Graduate Software Engineer", techSolutionsCompanyId, "Join our dynamic team to build cutting-edge software solutions. Ideal for recent graduates.", JSON.stringify(["Java", "Spring Boot", "SQL"]), 3.2, "San Francisco, CA", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), "open"
+          "Graduate Software Engineer", techSolutionsCompanyId, "Join our dynamic team to build cutting-edge software solutions. Ideal for recent graduates.", JSON.stringify(["Java", "Spring Boot", "SQL"]), 3.2 * 2.5, "San Francisco, CA", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), "open" // 8.0
         );
     }
     jobCount = 7;
@@ -317,10 +314,11 @@ async function seedData(dbInstance: Database) {
   }
 
 
-  console.log("Database initialized and seeded if necessary (with pseudo-hashed passwords).");
+  console.log("Database initialized and seeded if necessary (with pseudo-hashed passwords). GPA scale 0-10.");
 }
 
 initializeDb().catch(error => {
   console.error("Failed to initialize database:", error);
   // Potentially exit or handle critical failure if DB init is essential at startup
 });
+

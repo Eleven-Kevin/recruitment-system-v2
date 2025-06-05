@@ -115,7 +115,7 @@ export default function CompanyJobPostingsPage() {
                 )}
                 {job.requiredGpa && (
                   <div>
-                    <span className="text-xs font-semibold">Min GPA: </span>
+                    <span className="text-xs font-semibold">Min GPA (0-10): </span>
                     <span className="text-xs text-muted-foreground">{job.requiredGpa.toFixed(1)}</span>
                   </div>
                 )}
@@ -140,3 +140,4 @@ export default function CompanyJobPostingsPage() {
     </>
   );
 }
+
