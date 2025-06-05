@@ -43,6 +43,7 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
   const { toast } = useToast();
   const router = useRouter();
   const [loggedInCompanyId, setLoggedInCompanyId] = useState<number | null>(null);
+  const [loggedInCompanyName, setLoggedInCompanyName] = useState<string | undefined>(undefined);
   const [isCompanyUser, setIsCompanyUser] = useState(false);
 
   useEffect(() => {
@@ -50,38 +51,50 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
       const role = localStorage.getItem('userRole');
       const companyIdStr = localStorage.getItem('companyId');
       if (role === 'company' && companyIdStr) {
-        setLoggedInCompanyId(parseInt(companyIdStr, 10));
+        const numCompanyId = parseInt(companyIdStr, 10);
+        setLoggedInCompanyId(numCompanyId);
         setIsCompanyUser(true);
+        const companyDetails = companies.find(c => c.id === numCompanyId);
+        if (companyDetails) {
+          setLoggedInCompanyName(companyDetails.name);
+        }
       }
     }
-  }, []);
+  }, [companies]);
 
   const form = useForm<JobPostingFormValues>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
       title: job?.title || "",
       description: job?.description || "",
-      companyId: job?.companyId || (isCompanyUser && loggedInCompanyId ? loggedInCompanyId : companies[0]?.id > 0 ? companies[0]?.id : undefined),
+      companyId: job?.companyId || (isCompanyUser && loggedInCompanyId ? loggedInCompanyId : companies.find(c => c.id > 0)?.id),
       requiredSkills: job?.requiredSkills?.join(', ') || "",
       requiredGpa: job?.requiredGpa || null,
       location: job?.location || "",
     },
   });
   
-  // Effect to update companyId if loggedInCompanyId changes (after initial render)
   useEffect(() => {
-    if (isCompanyUser && loggedInCompanyId && !job?.companyId) {
+    if (isCompanyUser && loggedInCompanyId) {
       form.setValue('companyId', loggedInCompanyId);
-    } else if (!job?.companyId && companies.length > 0 && companies[0].id > 0) {
-        form.setValue('companyId', companies[0].id);
+      if (!loggedInCompanyName) {
+        const companyDetails = companies.find(c => c.id === loggedInCompanyId);
+        if (companyDetails) {
+          setLoggedInCompanyName(companyDetails.name);
+        }
+      }
+    } else if (!job?.companyId && companies.length > 0) {
+        const firstValidCompany = companies.find(c => c.id > 0);
+        if (firstValidCompany) {
+            form.setValue('companyId', firstValidCompany.id);
+        }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCompanyUser, loggedInCompanyId, job?.companyId, form.setValue, companies]);
+  }, [isCompanyUser, loggedInCompanyId, job?.companyId, companies, form.setValue]);
 
 
   async function onSubmit(data: JobPostingFormValues) {
     const payload = { ...data };
-    // If company user is logged in and creating a new job, ensure their companyId is used.
     if (isCompanyUser && loggedInCompanyId && !job?.id) {
         payload.companyId = loggedInCompanyId;
     }
@@ -90,7 +103,6 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
         toast({ variant: "destructive", title: "Error", description: "A valid company must be selected or associated." });
         return;
     }
-
 
     const apiPath = job?.id ? `/api/jobs/${job.id}` : '/api/jobs';
     const method = job?.id ? 'PUT' : 'POST';
@@ -119,14 +131,18 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
       }
       
       if (!job?.id) { 
+        const defaultCompanyId = isCompanyUser && loggedInCompanyId ? loggedInCompanyId : (companies.find(c=>c.id > 0)?.id);
         form.reset({ 
             title: "", 
             description: "", 
-            companyId: (isCompanyUser && loggedInCompanyId ? loggedInCompanyId : (companies[0]?.id > 0 ? companies[0]?.id : undefined)), 
+            companyId: defaultCompanyId, 
             requiredSkills: "",
             requiredGpa: null,
             location: ""
         });
+        if(defaultCompanyId){ // ensure companyId is set for company user after reset
+            form.setValue('companyId', defaultCompanyId);
+        }
         router.push('/company/job-postings'); 
       } else {
         router.refresh(); 
@@ -161,35 +177,53 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="companyId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Company</FormLabel>
-              <Select 
-                onValueChange={(value) => field.onChange(parseInt(value))} 
-                value={field.value?.toString()}
-                disabled={isCompanyUser} // Disable if company user is logged in
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {companies.filter(c => c.id > 0).map(c => ( // Filter out placeholder companies with id 0
-                    <SelectItem key={c.id} value={c.id.toString()}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isCompanyUser && <FormDescription>Your company is automatically selected.</FormDescription>}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {isCompanyUser && loggedInCompanyId ? (
+          <FormItem>
+            <FormLabel>Company</FormLabel>
+            <FormControl>
+              <Input
+                value={loggedInCompanyName || 'Your Company'}
+                disabled
+                className="bg-muted/50"
+              />
+            </FormControl>
+            <FormDescription>Your company is automatically selected.</FormDescription>
+            {/* Hidden field to ensure companyId is part of the form state if needed by react-hook-form's direct state, though Zod schema handles it */}
+            <input type="hidden" {...form.register("companyId")} value={loggedInCompanyId} />
+            <FormMessage />
+          </FormItem>
+        ) : (
+          <FormField
+            control={form.control}
+            name="companyId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a company" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {companies.filter(c => c.id > 0).map(c => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                     {companies.filter(c => c.id > 0).length === 0 && (
+                        <SelectItem value="no-company" disabled>No companies available</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -262,3 +296,4 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
     </Form>
   );
 }
+
