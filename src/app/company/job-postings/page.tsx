@@ -1,33 +1,66 @@
 
+"use client";
+
 import { PageHeader } from "@/components/core/page-header";
 import { DataTablePlaceholder } from "@/components/core/data-table-placeholder";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Briefcase, Users } from "lucide-react";
+import { PlusCircle, Briefcase, Users, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
-async function getCompanyJobs(): Promise<Job[]> {
-  // In a real app, this would filter by the logged-in company's ID.
-  // For now, fetching all jobs using a relative path.
-  // TODO: When company login is fully implemented, pass companyId as query param
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!baseUrl) {
-    console.error("Error: NEXT_PUBLIC_APP_URL is not defined. Cannot fetch company jobs.");
-    return [];
-  }
-  const res = await fetch(`${baseUrl}/api/jobs`, { cache: 'no-store' });
-  if (!res.ok) {
-    console.error("Failed to fetch jobs", res.status, await res.text());
-    return [];
-  }
-  return res.json();
-}
+export default function CompanyJobPostingsPage() {
+  const [companyJobs, setCompanyJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
+  useEffect(() => {
+    async function fetchCompanyJobs() {
+      setIsLoading(true);
+      setError(null);
+      let companyId: string | null = null;
+      if (typeof window !== 'undefined') {
+        companyId = localStorage.getItem('companyId');
+      }
 
-export default async function CompanyJobPostingsPage() {
-  const companyJobs = await getCompanyJobs();
+      if (!companyId) {
+        setError("Company ID not found. Please ensure you are logged in correctly.");
+        setIsLoading(false);
+        toast({
+          title: "Authentication Error",
+          description: "Could not identify your company. Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/jobs?companyId=${companyId}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch company jobs.");
+        }
+        const data: Job[] = await response.json();
+        setCompanyJobs(data);
+      } catch (e: any) {
+        console.error("Failed to fetch company jobs:", e);
+        setError(e.message || "An unexpected error occurred while fetching jobs.");
+        toast({
+          title: "Error Fetching Jobs",
+          description: e.message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchCompanyJobs();
+  }, [toast]);
 
   return (
     <>
@@ -42,7 +75,20 @@ export default async function CompanyJobPostingsPage() {
           </Button>
         }
       />
-      {companyJobs.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <p className="ml-2 text-muted-foreground">Loading your job postings...</p>
+        </div>
+      ) : error ? (
+        <Card className="text-center py-10">
+          <CardContent>
+            <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-2" />
+            <h3 className="text-lg font-semibold text-destructive">Error Loading Jobs</h3>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </CardContent>
+        </Card>
+      ) : companyJobs.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {companyJobs.map((job) => (
             <Card key={job.id} className="flex flex-col h-full hover:shadow-md transition-shadow">
@@ -79,7 +125,7 @@ export default async function CompanyJobPostingsPage() {
                   <Link href={`/company/applicants/${job.id}`}> 
                     <Users className="mr-2 h-4 w-4" /> View Applicants 
                     {/* Placeholder for applicant count - real count would require another query/API */}
-                    <Badge variant="default" className="ml-auto">{(Math.floor(Math.random()*5) +1)}</Badge> 
+                    {/* <Badge variant="default" className="ml-auto">{(Math.floor(Math.random()*5) +1)}</Badge>  */}
                   </Link>
                 </Button>
                 {/* TODO: Implement Edit functionality linking to a pre-filled JobPostingForm */}
