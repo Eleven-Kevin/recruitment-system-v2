@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const jobPostingSchema = z.object({
   title: z.string().min(5, "Job title must be at least 5 characters."),
@@ -45,29 +46,14 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
   const [loggedInCompanyId, setLoggedInCompanyId] = useState<number | null>(null);
   const [loggedInCompanyName, setLoggedInCompanyName] = useState<string | undefined>(undefined);
   const [isCompanyUser, setIsCompanyUser] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('userRole');
-      const companyIdStr = localStorage.getItem('companyId');
-      if (role === 'company' && companyIdStr) {
-        const numCompanyId = parseInt(companyIdStr, 10);
-        setLoggedInCompanyId(numCompanyId);
-        setIsCompanyUser(true);
-        const companyDetails = companies.find(c => c.id === numCompanyId);
-        if (companyDetails) {
-          setLoggedInCompanyName(companyDetails.name);
-        }
-      }
-    }
-  }, [companies]);
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
 
   const form = useForm<JobPostingFormValues>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
       title: job?.title || "",
       description: job?.description || "",
-      companyId: job?.companyId || (isCompanyUser && loggedInCompanyId ? loggedInCompanyId : companies.find(c => c.id > 0)?.id),
+      companyId: job?.companyId || undefined, // Initialize as undefined, will be set in useEffect
       requiredSkills: job?.requiredSkills?.join(', ') || "",
       requiredGpa: job?.requiredGpa || null,
       location: job?.location || "",
@@ -75,29 +61,38 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
   });
   
   useEffect(() => {
-    if (isCompanyUser && loggedInCompanyId) {
-      form.setValue('companyId', loggedInCompanyId);
-      if (!loggedInCompanyName) {
-        const companyDetails = companies.find(c => c.id === loggedInCompanyId);
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('userRole');
+      const companyIdStr = localStorage.getItem('companyId');
+      
+      if (role === 'company' && companyIdStr) {
+        const numCompanyId = parseInt(companyIdStr, 10);
+        setLoggedInCompanyId(numCompanyId);
+        setIsCompanyUser(true);
+        form.setValue('companyId', numCompanyId, { shouldValidate: true, shouldDirty: true });
+        const companyDetails = companies.find(c => c.id === numCompanyId);
         if (companyDetails) {
           setLoggedInCompanyName(companyDetails.name);
         }
-      }
-    } else if (!job?.companyId && companies.length > 0) {
+      } else if (!job?.companyId && companies.length > 0) {
+        // This part is for non-company users, e.g. admin, or if job has no companyId
         const firstValidCompany = companies.find(c => c.id > 0);
-        if (firstValidCompany) {
-            form.setValue('companyId', firstValidCompany.id);
+        if (firstValidCompany && !form.getValues("companyId")) { 
+            form.setValue('companyId', firstValidCompany.id, { shouldValidate: true, shouldDirty: true });
         }
+      } else if (job?.companyId) {
+        // If job has a companyId (e.g., editing), ensure it's set
+        form.setValue('companyId', job.companyId, { shouldValidate: true, shouldDirty: true });
+      }
+      setIsUserDataLoaded(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCompanyUser, loggedInCompanyId, job?.companyId, companies, form.setValue]);
+  }, [job?.companyId, companies, form.setValue, form.getValues]);
 
 
   async function onSubmit(data: JobPostingFormValues) {
     const payload = { ...data };
-    if (isCompanyUser && loggedInCompanyId && !job?.id) {
-        payload.companyId = loggedInCompanyId;
-    }
+    // companyId is already correctly set by the useEffect and form.setValue
     
     if (!payload.companyId || payload.companyId <= 0) {
         toast({ variant: "destructive", title: "Error", description: "A valid company must be selected or associated." });
@@ -131,18 +126,21 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
       }
       
       if (!job?.id) { 
-        const defaultCompanyId = isCompanyUser && loggedInCompanyId ? loggedInCompanyId : (companies.find(c=>c.id > 0)?.id);
+        // Reset form for new job posting
+        let defaultCompanyIdAfterReset = undefined;
+        if (isCompanyUser && loggedInCompanyId) {
+            defaultCompanyIdAfterReset = loggedInCompanyId;
+        } else if (companies.find(c=>c.id > 0)) {
+            defaultCompanyIdAfterReset = companies.find(c=>c.id > 0)?.id;
+        }
         form.reset({ 
             title: "", 
             description: "", 
-            companyId: defaultCompanyId, 
+            companyId: defaultCompanyIdAfterReset, 
             requiredSkills: "",
             requiredGpa: null,
             location: ""
         });
-        if(defaultCompanyId){ // ensure companyId is set for company user after reset
-            form.setValue('companyId', defaultCompanyId);
-        }
         router.push('/company/job-postings'); 
       } else {
         router.refresh(); 
@@ -177,7 +175,13 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
           )}
         />
         
-        {isCompanyUser && loggedInCompanyId ? (
+        {!isUserDataLoaded ? (
+            <FormItem>
+              <FormLabel>Company</FormLabel>
+              <Skeleton className="h-10 w-full" />
+              <FormDescription>Loading company information...</FormDescription>
+            </FormItem>
+        ) : isCompanyUser && loggedInCompanyId ? (
           <FormItem>
             <FormLabel>Company</FormLabel>
             <FormControl>
@@ -188,9 +192,8 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
               />
             </FormControl>
             <FormDescription>Your company is automatically selected.</FormDescription>
-            {/* Hidden field to ensure companyId is part of the form state if needed by react-hook-form's direct state, though Zod schema handles it */}
+            {/* Ensure companyId is registered with the form for submission */}
             <input type="hidden" {...form.register("companyId")} value={loggedInCompanyId} />
-            <FormMessage />
           </FormItem>
         ) : (
           <FormField
@@ -202,6 +205,7 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
                 <Select 
                   onValueChange={(value) => field.onChange(parseInt(value))} 
                   value={field.value?.toString()}
+                  disabled={companies.filter(c => c.id > 0).length === 0}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -215,7 +219,7 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
                       </SelectItem>
                     ))}
                      {companies.filter(c => c.id > 0).length === 0 && (
-                        <SelectItem value="no-company" disabled>No companies available</SelectItem>
+                        <SelectItem value="no-company" disabled>No companies available (Seed DB or Add Company)</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -289,11 +293,10 @@ export function JobPostingForm({ job, companies, onSubmitSuccess }: JobPostingFo
           )}
         />
         
-        <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+        <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting || !isUserDataLoaded}>
           {form.formState.isSubmitting ? (job?.id ? "Updating..." : "Posting...") : (job?.id ? "Update Job Posting" : "Post Job")}
         </Button>
       </form>
     </Form>
   );
 }
-

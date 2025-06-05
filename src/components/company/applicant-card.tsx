@@ -1,3 +1,4 @@
+
 import type { Student, Application } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +18,7 @@ export function ApplicantCard({ student, application }: ApplicantCardProps) {
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar className="h-16 w-16">
-          <AvatarImage src={student.profilePictureUrl || `https://placehold.co/100x100.png?text=${studentInitial}`} alt={student.name} data-ai-hint="student photo"/>
+          <AvatarImage src={student.profilePictureUrl || `https://placehold.co/100x100.png?text=${studentInitial}`} alt={student.name || "Student avatar"} data-ai-hint="student photo"/>
           <AvatarFallback>{studentInitial}</AvatarFallback>
         </Avatar>
         <div>
@@ -61,7 +62,7 @@ export function ApplicantCard({ student, application }: ApplicantCardProps) {
             </a>
           </Button>
         )}
-        <Button variant="default" size="sm" className="w-full sm:w-auto bg-accent hover:bg-accent/90" disabled>
+        <Button variant="default" size="sm" className="w-full sm:w-auto bg-accent hover:bg-accent/90">
             <MessageSquare className="mr-2 h-4 w-4" /> Schedule Interview
         </Button>
       </CardFooter>
