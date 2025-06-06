@@ -20,7 +20,7 @@ export async function initializeDb() {
   const dbInstance = await getDb();
 
   // Create tables if they don't exist
-  await dbInstance.exec(\`
+  await dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -83,7 +83,7 @@ export async function initializeDb() {
         FOREIGN KEY (jobId) REFERENCES jobs(id) ON DELETE SET NULL,
         FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
     );
-  \`);
+  `);
 
   // Check and add companyId column to students table if it doesn't exist (simple migration)
   try {
@@ -321,4 +321,3 @@ initializeDb().catch(error => {
   console.error("Failed to initialize database:", error);
   // Potentially exit or handle critical failure if DB init is essential at startup
 });
-

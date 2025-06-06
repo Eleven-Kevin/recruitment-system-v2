@@ -33,7 +33,7 @@ export default function AdminStudentsPage() {
     try {
       const response = await fetch("/api/admin/students"); // Ensure this fetches students
       if (!response.ok) {
-        throw new Error(\`HTTP error! status: \${response.status}\`);
+        throw new Error(`HTTP error! status: \${response.status}`);
       }
       const data = await response.json();
       setStudents(data);
@@ -54,7 +54,7 @@ export default function AdminStudentsPage() {
       return;
     }
     try {
-      const response = await fetch(\`/api/students/\${studentId}\`, {
+      const response = await fetch(`/api/students/\${studentId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
