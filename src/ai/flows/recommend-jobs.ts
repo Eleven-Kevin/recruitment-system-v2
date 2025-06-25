@@ -39,7 +39,7 @@ const prompt = ai.definePrompt({
   name: 'recommendJobsPrompt',
   input: {schema: RecommendJobsInputSchema},
   output: {schema: RecommendJobsOutputSchema},
-  prompt: \`You are an AI job recommendation system. You will be provided with a student's skills, GPA (on a 0-10 scale), past applications, and a list of all available jobs. Your task is to recommend the jobs that are most relevant to the student.
+  prompt: `You are an AI job recommendation system. You will be provided with a student's skills, GPA (on a 0-10 scale), past applications, and a list of all available jobs. Your task is to recommend the jobs that are most relevant to the student.
 
 Student Skills: {{{studentSkills}}}
 Student GPA (0-10 scale): {{{studentGPA}}}
@@ -58,7 +58,7 @@ For each job, consider the student's skills, GPA, and past applications to deter
 
 Output a list of recommended jobs, sorted by relevance score in descending order. Each job should include the job ID and a relevance score between 0 and 1.
 
-Ensure that the output follows the specified JSON schema.\`,  
+Ensure that the output follows the specified JSON schema.`,  
 });
 
 const recommendJobsFlow = ai.defineFlow(
