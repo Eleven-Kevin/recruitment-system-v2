@@ -1,4 +1,3 @@
-
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
 import type { Student, Company, Job, Application, Schedule } from '@/types';
@@ -270,7 +269,32 @@ async function seedData(dbInstance: Database) {
   if (appCount === 0) {
     const studentAlex = await dbInstance.get('SELECT id FROM students WHERE email = ?', 'alex.johnson@example.com');
     const studentAlice = await dbInstance.get('SELECT id FROM students WHERE email = ?', 'alice@example.com');
+    const studentBob = await dbInstance.get('SELECT id FROM students WHERE email = ?', 'bob@example.com');
+    // Get job IDs for different companies
+    const jobFrontend = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Frontend Developer'");
+    const jobBackend = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Backend Developer'");
+    const jobDataScientist = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Data Scientist'");
+    const jobGraduateSE = await dbInstance.get("SELECT id FROM jobs WHERE title = 'Graduate Software Engineer'");
 
+    if (studentAlex && jobFrontend) {
+      await dbInstance.run(
+        "INSERT INTO applications (studentId, jobId, status, appliedDate) VALUES (?, ?, ?, ?)",
+        studentAlex.id, jobFrontend.id, 'placed', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+      );
+    }
+    if (studentAlice && jobBackend) {
+      await dbInstance.run(
+        "INSERT INTO applications (studentId, jobId, status, appliedDate) VALUES (?, ?, ?, ?)",
+        studentAlice.id, jobBackend.id, 'placed', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+      );
+    }
+    if (studentBob && jobDataScientist) {
+      await dbInstance.run(
+        "INSERT INTO applications (studentId, jobId, status, appliedDate) VALUES (?, ?, ?, ?)",
+        studentBob.id, jobDataScientist.id, 'placed', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+      );
+    }
+    // Existing sample applications
     if (studentAlex && job1Id) {
       await dbInstance.run(
         "INSERT INTO applications (studentId, jobId, status, appliedDate) VALUES (?, ?, ?, ?)",
@@ -298,6 +322,17 @@ async function seedData(dbInstance: Database) {
             job1Id,
             webworksCompanyId
         );
+        // Add another mock interview for WebWorks
+        await dbInstance.run(
+            "INSERT INTO schedules (title, description, date, time, location, jobId, companyId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "WebWorks Final Interviews",
+            "Final round interviews for selected candidates.",
+            new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            "03:00 PM - 05:00 PM",
+            "WebWorks HQ, Conference Room 2",
+            job1Id,
+            webworksCompanyId
+        );
     }
 
     if (techSolutionsCompanyId) {
@@ -308,6 +343,16 @@ async function seedData(dbInstance: Database) {
             new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
             "09:00 AM - 05:00 PM",
             "Main College Auditorium",
+            techSolutionsCompanyId
+        );
+        // Add another mock interview for Tech Solutions
+        await dbInstance.run(
+            "INSERT INTO schedules (title, description, date, time, location, companyId) VALUES (?, ?, ?, ?, ?, ?)",
+            "Tech Solutions Final Interviews",
+            "Final interviews for shortlisted candidates.",
+            new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+            "11:00 AM - 01:00 PM",
+            "Tech Solutions HQ, Room 101",
             techSolutionsCompanyId
         );
     }

@@ -1,10 +1,9 @@
-
 "use client";
 
 import { PageHeader } from "@/components/core/page-header";
 import { DataTablePlaceholder } from "@/components/core/data-table-placeholder";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Briefcase, Users, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Briefcase, Users, Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,16 +119,33 @@ export default function CompanyJobPostingsPage() {
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="flex gap-2">
-                <Button variant="outline" size="sm" asChild className="flex-1 group">
-                  <Link href={`/company/applicants/${job.id}`}> 
-                    <Users className="mr-2 h-4 w-4" /> View Applicants 
-                    {/* Placeholder for applicant count - real count would require another query/API */}
-                    {/* <Badge variant="default" className="ml-auto">{(Math.floor(Math.random()*5) +1)}</Badge>  */}
-                  </Link>
-                </Button>
-                {/* TODO: Implement Edit functionality linking to a pre-filled JobPostingForm */}
-                <Button variant="ghost" size="sm" disabled>Edit</Button> 
+              <CardFooter className="flex flex-col gap-2">
+                <div className="flex w-full">
+                  <Button variant="outline" size="sm" asChild className="flex-1 group">
+                    <Link href={`/company/applicants/${job.id}`}> 
+                      <Users className="mr-2 h-4 w-4" /> View Applicants 
+                    </Link>
+                  </Button>
+                </div>
+                <div className="flex w-full gap-2">
+                  <Button variant="ghost" size="sm" disabled className="flex-1">Edit</Button>
+                  <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
+                    if (!window.confirm(`Are you sure you want to delete the job: ${job.title}?`)) return;
+                    try {
+                      const res = await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' });
+                      if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Failed to delete job');
+                      }
+                      setCompanyJobs(jobs => jobs.filter(j => j.id !== job.id));
+                      toast({ title: 'Job Deleted', description: `Job "${job.title}" was deleted.`, variant: 'success' });
+                    } catch (e: any) {
+                      toast({ title: 'Delete Failed', description: e.message, variant: 'destructive' });
+                    }
+                  }}>
+                    <Trash2 className="mr-1 h-4 w-4" /> Delete
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           ))}

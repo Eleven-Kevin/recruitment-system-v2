@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -131,30 +130,30 @@ export default function AdminSchedulesPage() {
         </div>
       ) : (
         <div className="rounded-md border bg-card text-card-foreground shadow overflow-x-auto">
-          <Table>
+          <Table className="text-xs md:text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Title</TableHead>
-                <TableHead className="min-w-[200px]">Description</TableHead>
-                <TableHead className="min-w-[150px]">Date</TableHead>
-                <TableHead className="min-w-[100px]">Time</TableHead>
-                <TableHead className="min-w-[150px]">Location</TableHead>
-                <TableHead className="min-w-[150px]">Related Job</TableHead>
-                <TableHead className="min-w-[150px]">Company</TableHead>
-                <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                <TableHead className="min-w-[120px] whitespace-nowrap">Title</TableHead>
+                <TableHead className="min-w-[120px] whitespace-nowrap">Description</TableHead>
+                <TableHead className="min-w-[100px] whitespace-nowrap">Date</TableHead>
+                <TableHead className="min-w-[80px] whitespace-nowrap">Time</TableHead>
+                <TableHead className="min-w-[100px] whitespace-nowrap">Location</TableHead>
+                <TableHead className="min-w-[100px] whitespace-nowrap">Related Job</TableHead>
+                <TableHead className="min-w-[100px] whitespace-nowrap">Company</TableHead>
+                <TableHead className="text-right min-w-[80px] whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {schedules.map((schedule) => (
                 <TableRow key={schedule.id}>
-                  <TableCell className="font-medium max-w-[200px] truncate">{schedule.title}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate">{schedule.description || "N/A"}</TableCell>
-                  <TableCell>{format(new Date(schedule.date), "PPP")}</TableCell>
-                  <TableCell>{schedule.time || "N/A"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{schedule.location || "N/A"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{schedule.jobTitle || "N/A"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{schedule.companyName || "N/A"}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="font-medium max-w-[120px] truncate whitespace-nowrap">{schedule.title}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs max-w-[120px] truncate whitespace-nowrap">{schedule.description || "N/A"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{format(new Date(schedule.date), "PPP")}</TableCell>
+                  <TableCell className="whitespace-nowrap">{schedule.time || "N/A"}</TableCell>
+                  <TableCell className="max-w-[100px] truncate whitespace-nowrap">{schedule.location || "N/A"}</TableCell>
+                  <TableCell className="max-w-[100px] truncate whitespace-nowrap">{schedule.jobTitle || "N/A"}</TableCell>
+                  <TableCell className="max-w-[100px] truncate whitespace-nowrap">{schedule.companyName || "N/A"}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
                     <Button
                       variant="ghost"
                       size="sm"

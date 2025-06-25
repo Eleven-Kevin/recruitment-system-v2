@@ -1,4 +1,3 @@
-
 import { PageHeader } from "@/components/core/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartPlaceholder } from "@/components/core/chart-placeholder";
@@ -58,10 +57,11 @@ export default function CollegeDashboardPage() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-6 mt-6 md:grid-cols-2">
+      {/* Remove the chart placeholders below for a cleaner dashboard */}
+      {/* <div className="grid gap-6 mt-6 md:grid-cols-2">
         <ChartPlaceholder title="Branch-wise Placement Percentage" />
         <ChartPlaceholder title="Top Recruiting Companies" />
-      </div>
+      </div> */}
     </>
   );
 }

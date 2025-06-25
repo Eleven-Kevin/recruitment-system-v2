@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -219,14 +218,14 @@ export function AddScheduleForm({ onSuccess }: AddScheduleFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Related Job (Optional)</FormLabel>
-              <Select onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} defaultValue={field.value?.toString()}>
+              <Select onValueChange={(value) => field.onChange(value === 'none' ? null : parseInt(value))} defaultValue={field.value?.toString() ?? 'none'}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a job if this schedule is for a specific role" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {jobs.map((job) => (
                     <SelectItem key={job.id} value={job.id.toString()}>
                       {job.title} - {job.companyName}

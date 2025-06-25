@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import type { Company } from '@/types';
@@ -140,5 +139,54 @@ export async function DELETE(request: NextRequest, { params }: { params: { compa
     }
     console.error(`API Error in DELETE /api/admin/companies/${params.companyId}:`, e);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}
+
+// GET /api/admin/companies/[companyId]/funnel
+export async function GET_funnel(request: NextRequest, { params }: { params: { companyId: string } }) {
+  try {
+    const db = await getDb();
+    const companyId = parseInt(params.companyId, 10);
+    if (isNaN(companyId)) {
+      return NextResponse.json({ error: 'Invalid company ID' }, { status: 400 });
+    }
+    // Get all jobs for this company
+    const jobs = await db.all('SELECT id FROM jobs WHERE companyId = ?', companyId);
+    const jobIds = jobs.map((j: any) => j.id);
+    if (jobIds.length === 0) {
+      return NextResponse.json({ funnel: [] });
+    }
+    // Get counts by status for all applications to these jobs
+    const funnel = await db.all(`
+      SELECT status, COUNT(*) as count
+      FROM applications
+      WHERE jobId IN (${jobIds.map(() => '?').join(',')})
+      GROUP BY status
+    `, ...jobIds);
+    return NextResponse.json({ funnel });
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed to fetch funnel data' }, { status: 500 });
+  }
+}
+
+// GET /api/admin/companies/[companyId]/interviews
+export async function GET_interviews(request: NextRequest, { params }: { params: { companyId: string } }) {
+  try {
+    const db = await getDb();
+    const companyId = parseInt(params.companyId, 10);
+    if (isNaN(companyId)) {
+      return NextResponse.json({ error: 'Invalid company ID' }, { status: 400 });
+    }
+    // Get all schedules for this company (direct or via job)
+    const interviews = await db.all(`
+      SELECT s.*, j.title as jobTitle
+      FROM schedules s
+      LEFT JOIN jobs j ON s.jobId = j.id
+      WHERE s.companyId = ? OR j.companyId = ?
+      ORDER BY s.date ASC, s.time ASC
+    `, companyId, companyId);
+    return NextResponse.json({ interviews });
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed to fetch interview schedules' }, { status: 500 });
   }
 }

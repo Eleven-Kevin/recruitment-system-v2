@@ -1,12 +1,41 @@
-
+"use client";
 import { PageHeader } from "@/components/core/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Send, Users, BookUser, ArrowRight, BarChart } from "lucide-react";
-import { ChartPlaceholder } from "@/components/core/chart-placeholder";
+import { Send, Users, BookUser, ArrowRight, BarChart as BarChartIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChartContainer } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
 export default function CompanyDashboardPage() {
+  const [funnel, setFunnel] = useState<any[]>([]);
+  const [loadingFunnel, setLoadingFunnel] = useState(true);
+
+  useEffect(() => {
+    async function fetchFunnel() {
+      setLoadingFunnel(true);
+      let companyId = null;
+      if (typeof window !== 'undefined') {
+        companyId = localStorage.getItem('companyId');
+      }
+      if (!companyId) {
+        setFunnel([]);
+        setLoadingFunnel(false);
+        return;
+      }
+      const res = await fetch(`/api/admin/companies/${companyId}/funnel`);
+      if (res.ok) {
+        const data = await res.json();
+        setFunnel(data.funnel || []);
+      } else {
+        setFunnel([]);
+      }
+      setLoadingFunnel(false);
+    }
+    fetchFunnel();
+  }, []);
+
   return (
     <>
       <PageHeader
@@ -58,7 +87,29 @@ export default function CompanyDashboardPage() {
         </Card>
       </div>
       <div className="mt-6">
-        <ChartPlaceholder title="Applicant Funnel Overview" icon={BarChart} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Applicant Funnel Overview</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: 300 }}>
+            {loadingFunnel ? (
+              <div className="text-muted-foreground">Loading...</div>
+            ) : funnel.length > 0 ? (
+              <ChartContainer config={{}}>
+                <BarChart data={funnel} margin={{ top: 16, right: 16, left: 0, bottom: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="status" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#3498db" name="Applicants" />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="text-muted-foreground">No applicant data available for funnel.</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );

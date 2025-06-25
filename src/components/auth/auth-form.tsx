@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,6 +55,11 @@ export function AuthForm() {
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('userName', data.name);
         localStorage.setItem('userEmail', data.email);
+        if (data.role === 'company' && data.companyId) {
+          localStorage.setItem('companyId', data.companyId.toString());
+        } else {
+          localStorage.removeItem('companyId');
+        }
       }
       
       toast({
